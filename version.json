@@ -1,5 +1,9 @@
 {
-  "version": "v0.9.3",
+  "version": "v0.9.2",
   "download_url": "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/app_scan.py",
-  "changelog": "Perbaikan bug struktur header Excel dan optimasi stabil."
+  "changelog": "(Excel Header Auto-Format):
+• Auto-checks & generates structured
+  merged headers on initial sheet launch.
+• Standardized columns A to K permanently.
+• Version incremented to v0.9.2."
 }
