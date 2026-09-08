@@ -1,0 +1,5 @@
+{
+  "version": "v0.9.3",
+  "download_url": "https://raw.githubusercontent.com/username/repo-anda/main/app_scan.py",
+  "changelog": "Perbaikan bug struktur header Excel dan optimasi stabil."
+}
