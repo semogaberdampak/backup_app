@@ -13,7 +13,7 @@ from sync_master import MasterDataSync
 class KasirApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Takom Kasir v0.9.3")
+        self.root.title("Takom Kasir v0.9.4")
 
         # AUTO LAUNCH FULL SCREEN (MAXIMIZED)
         self.root.state('zoomed')
