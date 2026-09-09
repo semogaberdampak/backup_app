@@ -6,13 +6,9 @@ from openpyxl.styles import Border, Side, Alignment, Font, PatternFill
 from datetime import datetime
 import os
 import threading
-import json
-import urllib.request
 
 # Import modul sync master cloud/cache
 from sync_master import MasterDataSync
-
-VERSION_URL = "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/version.json"
 
 class KasirApp:
     def __init__(self, root):
@@ -40,35 +36,18 @@ class KasirApp:
         self.cart = []
         self.no_trx_counter = 1
 
-        # Ambil Changelog secara dinamis dari GitHub untuk Patch Log Notes
-        self.dynamic_changelog = self.fetch_remote_changelog()
-
         # Bangun Styling Kustom (Tema Grey Seragam & Grid)
         self.setup_custom_styles()
 
-        # Bangun Struktur UI Utama (Termasuk Navigasi Rounded Button)
+        # Bangun Struktur UI Utama (Tanpa Patch Log)
         self.setup_main_layout()
         
         # Mulai load data master secara asinkron
         threading.Thread(target=self.load_master_data_async, daemon=True).start()
 
-    def fetch_remote_changelog(self):
-        """Mengambil data changelog secara online dari version.json di GitHub"""
-        # Diperbarui ke v1.0.0 sesuai permintaan
-        default_log = "- v1.0.0\n- Mengubah header 'No Transaksi' menjadi 'No'\n- Merge cell Setoran Harian (A s.d. D) pada Excel\n- Warna background header Non-Tunai lebih gelap dari Tunai"
-        try:
-            req = urllib.request.urlopen(VERSION_URL, timeout=3)
-            data = json.loads(req.read().decode('utf-8'))
-            return data.get("changelog", default_log)
-        except Exception as e:
-            print("Gagal mengambil changelog online:", e)
-            return default_log
-
     def setup_custom_styles(self):
-        """Mengatur gaya tema warna Grey seragam dan Grid untuk tabel laporan"""
         style = ttk.Style()
         style.theme_use('clam')
-        
         style.configure(".", background="#ece9e8", fieldbackground="#ece9e8")
         
         style.configure("DarkReport.Treeview", 
@@ -113,11 +92,9 @@ class KasirApp:
             canvas.create_text(85, 18, text=text, fill=text_color, font=("Arial", 10, "bold"))
 
         draw_button(bg_color, fg_color)
-        
         canvas.bind("<Button-1>", lambda e: command())
         canvas.bind("<Enter>", lambda e: draw_button("#16a085" if bg_color == "#1abc9c" else "#34495e", fg_color))
         canvas.bind("<Leave>", lambda e: draw_button(bg_color, fg_color))
-        
         return canvas
 
     def setup_main_layout(self):
@@ -127,15 +104,13 @@ class KasirApp:
 
         self.btn_transaksi_canvas = self.create_rounded_button(
             self.toolbar_frame, "🛒 Transaksi Kasir", 
-            lambda: self.switch_tab("transaksi"),
-            "#1abc9c", "white"
+            lambda: self.switch_tab("transaksi"), "#1abc9c", "white"
         )
         self.btn_transaksi_canvas.pack(side=tk.LEFT, padx=10, pady=7)
 
         self.btn_laporan_canvas = self.create_rounded_button(
             self.toolbar_frame, "📊 Laporan & Sheet", 
-            lambda: self.switch_tab("laporan"),
-            "#34495e", "white"
+            lambda: self.switch_tab("laporan"), "#34495e", "white"
         )
         self.btn_laporan_canvas.pack(side=tk.LEFT, padx=5, pady=7)
 
@@ -147,7 +122,6 @@ class KasirApp:
 
         self.setup_halaman_transaksi(self.frame_transaksi)
         self.setup_halaman_laporan(self.frame_laporan)
-
         self.switch_tab("transaksi")
 
     def switch_tab(self, tab_name):
@@ -161,12 +135,10 @@ class KasirApp:
             self.btn_transaksi_canvas.pack(side=tk.LEFT, padx=10, pady=7)
             self.btn_laporan_canvas = self.create_rounded_button(self.toolbar_frame, "📊 Laporan & Sheet", lambda: self.switch_tab("laporan"), "#34495e", "white")
             self.btn_laporan_canvas.pack(side=tk.LEFT, padx=5, pady=7)
-            
             self.ent_search.focus_force()
         elif tab_name == "laporan":
             self.frame_transaksi.pack_forget()
             self.frame_laporan.pack(fill=tk.BOTH, expand=True)
-            
             self.btn_transaksi_canvas.destroy()
             self.btn_laporan_canvas.destroy()
             
@@ -174,15 +146,15 @@ class KasirApp:
             self.btn_transaksi_canvas.pack(side=tk.LEFT, padx=10, pady=7)
             self.btn_laporan_canvas = self.create_rounded_button(self.toolbar_frame, "📊 Laporan & Sheet", lambda: self.switch_tab("laporan"), "#1abc9c", "white")
             self.btn_laporan_canvas.pack(side=tk.LEFT, padx=5, pady=7)
-            
             self.refresh_data_laporan()
 
     def setup_halaman_transaksi(self, parent):
         top_container = ttk.Frame(parent)
         top_container.pack(fill="x", padx=10, pady=5)
 
+        # Frame Pengaturan File & Sheet Target dibuat melebar penuh karena Patch Log dihapus
         frame_config = ttk.LabelFrame(top_container, text=" Pengaturan File & Sheet Target ")
-        frame_config.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        frame_config.pack(side="left", fill="both", expand=True)
 
         row_master = ttk.Frame(frame_config)
         row_master.pack(fill="x", padx=5, pady=6)
@@ -214,16 +186,6 @@ class KasirApp:
             foreground="darkslategray"
         )
         info_struktur.pack(anchor="w", padx=10, pady=(4, 8))
-
-        frame_notes = ttk.LabelFrame(top_container, text=" Patch Log Notes ")
-        frame_notes.pack(side="right", fill="both", padx=(5, 0))
-
-        self.txt_notes = tk.Text(frame_notes, width=35, height=6, font=("Consolas", 8))
-        self.txt_notes.pack(fill="both", expand=True, padx=2, pady=2)
-        
-        notes_content = f"[ PATCH LOG NOTES - ONLINE v1.0.0 ]\n-----------------------------\n{self.dynamic_changelog}"
-        self.txt_notes.insert("1.0", notes_content)
-        self.txt_notes.config(state="disabled")
 
         scan_frame = ttk.LabelFrame(parent, text=" Area Scan / Cari Produk ")
         scan_frame.pack(fill="x", padx=10, pady=5)
@@ -358,7 +320,6 @@ class KasirApp:
 
         try:
             df_raw = pd.read_excel(self.target_file_path, sheet_name=sheet_name, header=None)
-            
             if df_raw.empty or len(df_raw) < 1:
                 return
 
@@ -397,11 +358,7 @@ class KasirApp:
                     if len(cell_val) > max_len:
                         max_len = len(cell_val)
                 
-                if idx == 0:
-                    col_width = 45
-                else:
-                    col_width = max(max_len * 9, 90)
-
+                col_width = 45 if idx == 0 else max(max_len * 9, 90)
                 self.report_tree.column(col, width=col_width, anchor="w", stretch=False)
 
             for r_idx in range(2, len(df_raw)):
@@ -412,7 +369,6 @@ class KasirApp:
                 self.report_tree.insert("", "end", values=vals[:len(cols)])
 
             self.hitung_dan_tampilkan_setoran(df_raw)
-
         except Exception as e:
             print("Gagal memuat pratinjau laporan:", e)
 
@@ -492,8 +448,7 @@ class KasirApp:
 
             self.wb_target.save(self.target_file_path)
             self.muat_tabel_laporan_excel()
-            messagebox.showinfo("Sukses", f"Setoran Harian berhasil ditutup & disimpan ke Excel!\n\nTotal Tunai: Rp. {total_tunai:,.0f}\nTotal Non-Tunai: Rp. {total_nontunai:,.0f}\nGrand Total: Rp. {grand_setoran:,.0f}")
-
+            messagebox.showinfo("Sukses", f"Setoran Harian berhasil ditutup & disimpan ke Excel!")
         except Exception as e:
             messagebox.showerror("Error", f"Gagal memproses setoran harian:\n{str(e)}")
 
@@ -508,7 +463,6 @@ class KasirApp:
             return
 
         current_cart_item = self.cart[item_index]
-
         popup = tk.Toplevel(self.root)
         popup.title("Ubah Jumlah Qty")
         self.center_popup(popup, 320, 160)
@@ -530,12 +484,9 @@ class KasirApp:
         def save_new_qty(event=None):
             try:
                 new_q = int(ent_new_qty.get().strip())
-                if new_q <= 0:
-                    raise ValueError()
-                
+                if new_q <= 0: raise ValueError()
                 current_cart_item['jumlah'] = new_q
                 current_cart_item['total'] = new_q * current_cart_item['harga_akhir']
-                
                 self.update_tabel_keranjang()
                 popup.destroy()
                 self.ent_search.focus_force()
@@ -1045,7 +996,6 @@ class KasirApp:
                 popup.destroy()
                 self.ent_search.focus_force()
                 self.refresh_data_laporan()
-
             except Exception as e:
                 messagebox.showerror("Error Simpan", f"Gagal menyimpan transaksi:\n{str(e)}", parent=popup)
 
