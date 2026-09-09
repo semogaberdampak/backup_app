@@ -93,17 +93,18 @@ class KasirApp:
         )
         info_struktur.pack(anchor="w", padx=10, pady=(4, 8))
 
-        # Panel Kanan: Patch Log Notes (Updated to v0.9.2)
+        # Panel Kanan: Patch Log Notes
         frame_notes = ttk.LabelFrame(top_container, text=" Patch Log Notes ")
         frame_notes.pack(side="right", fill="both", padx=(5, 0))
 
         self.txt_notes = tk.Text(frame_notes, width=32, height=6, font=("Consolas", 8))
         self.txt_notes.pack(fill="both", expand=True, padx=2, pady=2)
         notes_content = (
-            "[ PATCH LOG NOTES ]\n"
+            "[ PATCH LOG NOTES - v.0.9.4]\n"
             "-----------------------------\n"
-            "FITUR UTAMA - sudah full ONLINE \n"
-            "v.0.9.3 (Excel Header Auto-Format):\n"
+            "FITUR UTAMA\n"
+            "sudah full ONLINE \n"
+            "Excel Header Auto-Format:\n"
             "Output Excel diseragamkan"            
         )
         self.txt_notes.insert("1.0", notes_content)
