@@ -54,14 +54,15 @@ class KasirApp:
 
     def fetch_remote_changelog(self):
         """Mengambil data changelog secara online dari version.json di GitHub"""
-        default_log = "FITUR UTAMA\n- Ubah 'No Transaksi' menjadi 'No'\n- Merge cell Setoran Harian (A-D) pada Excel\n- Warna Header Non-Tunai lebih gelap dari Tunai"
+        # Diperbarui ke v1.0.0 sesuai permintaan
+        default_log = "- v1.0.0\n- Mengubah header 'No Transaksi' menjadi 'No'\n- Merge cell Setoran Harian (A s.d. D) pada Excel\n- Warna background header Non-Tunai lebih gelap dari Tunai"
         try:
             req = urllib.request.urlopen(VERSION_URL, timeout=3)
             data = json.loads(req.read().decode('utf-8'))
             return data.get("changelog", default_log)
         except Exception as e:
             print("Gagal mengambil changelog online:", e)
-            return "Mode Offline / Gagal memuat Changelog terbaru dari server."
+            return default_log
 
     def setup_custom_styles(self):
         """Mengatur gaya tema warna Grey seragam dan Grid untuk tabel laporan"""
@@ -378,7 +379,6 @@ class KasirApp:
                 else:
                     header_text = f"Kolom {i+1}"
                 
-                # Ubah teks "No Transaksi" menjadi "No" khusus pada tampilan laporan
                 if header_text.lower() in ["no transaksi", "no. transaksi"]:
                     header_text = "No"
 
@@ -397,7 +397,6 @@ class KasirApp:
                     if len(cell_val) > max_len:
                         max_len = len(cell_val)
                 
-                # Buat kolom No lebih ramping (lebar minimal pas untuk teks "No")
                 if idx == 0:
                     col_width = 45
                 else:
@@ -471,7 +470,6 @@ class KasirApp:
 
             max_r = ws.max_row + 2
             
-            # Merge cell A hingga D untuk judul "SETORAN HARIAN (TUTUP BUKU)"
             ws.merge_cells(start_row=max_r, start_column=1, end_row=max_r, end_column=4)
             ws[f"A{max_r}"] = "SETORAN HARIAN (TUTUP BUKU)"
             ws[f"G{max_r}"] = total_tunai
@@ -557,7 +555,6 @@ class KasirApp:
             header_font = Font(name="Calibri", size=11, bold=True)
             align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-            # Warna background standar untuk header (Abu-abu terang) & warna khusus sedikit lebih gelap untuk Non Tunai
             fill_standard = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
             fill_nontunai = PatternFill(start_color="BFBFBF", end_color="BFBFBF", fill_type="solid")
 
@@ -587,14 +584,12 @@ class KasirApp:
             ws["G1"].border = thin_border
             ws["H1"].border = thin_border
 
-            # Tunai (Kolom G)
             ws["G2"].value = "TUNAI"
             ws["G2"].font = header_font
             ws["G2"].alignment = align_center
             ws["G2"].fill = fill_standard
             ws["G2"].border = thin_border
 
-            # Non Tunai (Kolom H) dengan warna background sedikit lebih gelap
             ws["H2"].value = "NON TUNAI"
             ws["H2"].font = header_font
             ws["H2"].alignment = align_center
