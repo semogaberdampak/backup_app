@@ -6,9 +6,14 @@ from openpyxl.styles import Border, Side, Alignment, Font, PatternFill
 from datetime import datetime
 import os
 import threading
+import json
+import urllib.request
 
 # Import modul sync master cloud/cache
 from sync_master import MasterDataSync
+
+# URL mentah ke version.json di GitHub Anda untuk mengambil changelog secara dinamis
+VERSION_URL = "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/version.json"
 
 class KasirApp:
     def __init__(self, root):
@@ -36,8 +41,22 @@ class KasirApp:
         self.cart = []
         self.no_trx_counter = 1
 
+        # Ambil Changelog secara dinamis dari GitHub untuk Patch Log Notes
+        self.dynamic_changelog = self.fetch_remote_changelog()
+
         self.setup_ui()
         threading.Thread(target=self.load_master_data_async, daemon=True).start()
+
+    def fetch_remote_changelog(self):
+        """Mengambil data changelog secara online dari version.json di GitHub"""
+        default_log = "FITUR UTAMA\n- Sistem Kasir Berjalan Normal\n- Menggunakan modul pembaruan otomatis."
+        try:
+            req = urllib.request.urlopen(VERSION_URL, timeout=3)
+            data = json.loads(req.read().decode('utf-8'))
+            return data.get("changelog", default_log)
+        except Exception as e:
+            print("Gagal mengambil changelog online:", e)
+            return "Mode Offline / Gagal memuat Changelog terbaru dari server."
 
     def center_popup(self, popup, width, height):
         popup.update_idletasks()
@@ -64,7 +83,7 @@ class KasirApp:
         row_master = ttk.Frame(frame_config)
         row_master.pack(fill="x", padx=5, pady=6)
         
-        self.lbl_status = ttk.Label(row_master, text="[ ⏳ Connecting Database... Mohon Tunggu ]", font=("Arial", 9, "bold"), foreground="blue")
+        self.lbl_status = ttk.Label(row_master, text="[ 🔄 Connecting Database... Mohon Tunggu ]", font=("Arial", 9, "bold"), foreground="blue")
         self.lbl_status.pack(side="left", padx=5)
 
         row_target = ttk.Frame(frame_config)
@@ -93,20 +112,15 @@ class KasirApp:
         )
         info_struktur.pack(anchor="w", padx=10, pady=(4, 8))
 
-        # Panel Kanan: Patch Log Notes
+        # Panel Kanan: Patch Log Notes (Dinamis dari GitHub)
         frame_notes = ttk.LabelFrame(top_container, text=" Patch Log Notes ")
         frame_notes.pack(side="right", fill="both", padx=(5, 0))
 
-        self.txt_notes = tk.Text(frame_notes, width=32, height=6, font=("Consolas", 8))
+        self.txt_notes = tk.Text(frame_notes, width=35, height=6, font=("Consolas", 8))
         self.txt_notes.pack(fill="both", expand=True, padx=2, pady=2)
-        notes_content = (
-            "[ PATCH LOG NOTES - v.0.9.4]\n"
-            "-----------------------------\n"
-            "FITUR UTAMA\n"
-            "sudah full ONLINE \n"
-            "Excel Header Auto-Format:\n"
-            "Output Excel diseragamkan"            
-        )
+        
+        # Masukkan teks dinamis hasil download dari version.json GitHub
+        notes_content = f"[ PATCH LOG NOTES - ONLINE ]\n-----------------------------\n{self.dynamic_changelog}"
         self.txt_notes.insert("1.0", notes_content)
         self.txt_notes.config(state="disabled")
 
@@ -196,13 +210,10 @@ class KasirApp:
         btn_finish.pack(side="right", padx=5)
 
     def cek_dan_buat_header_excel(self, ws):
-        """Memeriksa apakah header sudah ada di Baris 1 & 2. Jika belum, buat format header profesional."""
         val_a1 = ws["A1"].value
         val_g1 = ws["G1"].value
 
-        # Cek sederhana: jika A1 atau G1 belum berisi teks header yang sesuai, buat header
         if str(val_a1).strip().lower() not in ["no transaksi", "no"]:
-            # Definisikan style border tipis
             thin_border = Border(
                 left=Side(style='thin', color='000000'),
                 right=Side(style='thin', color='000000'),
@@ -213,7 +224,6 @@ class KasirApp:
             header_font = Font(name="Calibri", size=11, bold=True)
             align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-            # 1. Kolom Tunggal (Merge Baris 1 & 2)
             single_cols = [
                 ("A", "No Transaksi"),
                 ("B", "Kode Produk"),
@@ -233,11 +243,9 @@ class KasirApp:
                 cell.font = header_font
                 cell.alignment = align_center
                 
-                # Terapkan border untuk baris 1 dan 2 di kolom tersebut
                 ws[f"{col}1"].border = thin_border
                 ws[f"{col}2"].border = thin_border
 
-            # 2. Kolom Gabungan Metode (G & H)
             ws.merge_cells("G1:H1")
             cell_g1 = ws["G1"]
             cell_g1.value = "Metode"
@@ -252,12 +260,10 @@ class KasirApp:
             ws["H2"].font = header_font
             ws["H2"].alignment = align_center
 
-            # Terapkan border untuk blok G1:H2
             for r in [1, 2]:
                 for c in ["G", "H"]:
                     ws[f"{c}{r}"].border = thin_border
 
-            # Simpan workbook setelah header dibuat
             self.wb_target.save(self.target_file_path)
 
     def hitung_nomor_transaksi_berikutnya(self):
@@ -272,14 +278,11 @@ class KasirApp:
                 return
 
             ws = self.wb_target[sheet_name]
-            
-            # Cek dan buat header jika belum ada di sheet aktif ini
             self.cek_dan_buat_header_excel(ws)
 
             max_r = ws.max_row
             last_trx = 0
 
-            # Data transaksi mulai baris ke-3 ke bawah
             for r in range(max_r, 2, -1):
                 val = ws[f"A{r}"].value
                 if val is not None:
@@ -337,7 +340,7 @@ class KasirApp:
             if self.is_online:
                 self.lbl_status.config(text=f"[ 🟢 ONLINE Cloud: {len(self.df_master):,} Produk ]", foreground="green")
             else:
-                self.lbl_status.config(text=f"[ 🔴 OFFLINE Cache: {len(self.df_master):,} Produk ]", foreground="orange")
+                self.lbl_status.config(text=f"[ 🟠 OFFLINE Cache: {len(self.df_master):,} Produk ]", foreground="orange")
 
         self.root.after(0, update_label)
 
@@ -382,7 +385,6 @@ class KasirApp:
                     messagebox.showwarning("Peringatan", "Nama sheet sudah ada!", parent=popup)
                 else:
                     new_ws = self.wb_target.create_sheet(title=name)
-                    # Otomatis buatkan header untuk sheet baru ini
                     self.cek_dan_buat_header_excel(new_ws)
                     self.wb_target.save(self.target_file_path)
                     
@@ -729,7 +731,6 @@ class KasirApp:
                 sheet_name = self.combo_sheet.get()
                 ws = self.wb_target[sheet_name]
 
-                # Pastikan header aman
                 self.cek_dan_buat_header_excel(ws)
                 self.hitung_nomor_transaksi_berikutnya()
 
@@ -745,7 +746,6 @@ class KasirApp:
                     bottom=Side(style='thin', color='000000')
                 )
 
-                # Pemetaan Kolom Paten v0.9.2 (A s.d. K)
                 c_no_trx = "A"
                 c_kode = "B"
                 c_judul = "C"
@@ -760,15 +760,12 @@ class KasirApp:
 
                 all_used_cols = [c_no_trx, c_kode, c_judul, c_qty, c_harga, c_tot_item, c_tunai, c_nontunai, c_diskon, c_member, c_time]
 
-                # LOOP SETIAP ITEM DALAM KERANJANG (MULTI-ITEM)
                 for idx_item, item in enumerate(self.cart):
                     max_r = ws.max_row + 1
 
-                    # 1. No Transaksi: HANYA diisi pada baris pertama item
                     if idx_item == 0:
                         ws[f"{c_no_trx}{max_r}"] = no_trx_num
 
-                    # 2. Detail Produk
                     ws[f"{c_kode}{max_r}"] = item['barcode']
                     ws[f"{c_judul}{max_r}"] = item['judul']
                     ws[f"{c_qty}{max_r}"] = item['jumlah']
@@ -781,7 +778,6 @@ class KasirApp:
                     cell_tot_item.value = item['total']
                     cell_tot_item.number_format = currency_format
 
-                    # 3. Metode Pembayaran: HANYA diisi pada baris pertama item
                     if idx_item == 0:
                         if metode == "TUNAI":
                             cell_tunai = ws[f"{c_tunai}{max_r}"]
@@ -792,15 +788,12 @@ class KasirApp:
                             cell_nontunai.value = nontunai_val
                             cell_nontunai.number_format = currency_format
 
-                    # 4. Diskon & Catatan Member
                     ws[f"{c_diskon}{max_r}"] = item['diskon']
                     ws[f"{c_member}{max_r}"] = catatan_val if ada_diskon else ""
 
-                    # Timestamp: HANYA diisi pada baris pertama item
                     if idx_item == 0:
                         ws[f"{c_time}{max_r}"] = timestamp_str
 
-                    # Terapkan Border ke semua kolom
                     for col_l in all_used_cols:
                         if col_l:
                             ws[f"{col_l}{max_r}"].border = thin_border
