@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import pandas as pd
 import openpyxl
-from openpyxl.styles import Border, Side, Alignment, Font
+from openpyxl.styles import Border, Side, Alignment, Font, PatternFill
 from datetime import datetime
 import os
 import threading
@@ -17,7 +17,7 @@ VERSION_URL = "https://raw.githubusercontent.com/semogaberdampak/backup_app/main
 class KasirApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Takom Kasir v0.9.9")
+        self.root.title("Takom Kasir v1.0.0")
 
         # AUTO LAUNCH FULL SCREEN (MAXIMIZED)
         self.root.state('zoomed')
@@ -54,7 +54,7 @@ class KasirApp:
 
     def fetch_remote_changelog(self):
         """Mengambil data changelog secara online dari version.json di GitHub"""
-        default_log = "FITUR UTAMA\n- Edit Qty Langsung di Tabel Keranjang (Double Click)\n- Fitur Setoran Harian & Rekap Tutup Buku Excel\n- Warna Background Seragam (Grey)"
+        default_log = "FITUR UTAMA\n- Ubah 'No Transaksi' menjadi 'No'\n- Merge cell Setoran Harian (A-D) pada Excel\n- Warna Header Non-Tunai lebih gelap dari Tunai"
         try:
             req = urllib.request.urlopen(VERSION_URL, timeout=3)
             data = json.loads(req.read().decode('utf-8'))
@@ -68,10 +68,8 @@ class KasirApp:
         style = ttk.Style()
         style.theme_use('clam')
         
-        # Konfigurasi warna latar belakang abu-abu (Grey) untuk seluruh widget ttk
         style.configure(".", background="#ece9e8", fieldbackground="#ece9e8")
         
-        # Konfigurasi kustom untuk Treeview laporan dengan Grid jelas & latar abu-abu terang
         style.configure("DarkReport.Treeview", 
                         background="#ffffff", 
                         foreground="#000000", 
@@ -100,7 +98,6 @@ class KasirApp:
         popup.geometry(f'{width}x{height}+{max(0, x)}+{max(0, y)}')
 
     def create_rounded_button(self, parent, text, command, bg_color, fg_color):
-        """Membuat tombol navigasi kustom dengan sudut melengkung (round-rectangle) menggunakan Canvas"""
         canvas = tk.Canvas(parent, width=170, height=36, bg="#2c3e50", highlightthickness=0, cursor="hand2")
         
         def draw_button(color, text_color):
@@ -123,7 +120,6 @@ class KasirApp:
         return canvas
 
     def setup_main_layout(self):
-        """Membuat Toolbar Atas dengan Navigasi Rounded Button & Container Halaman Utama"""
         self.toolbar_frame = tk.Frame(self.root, bg="#2c3e50", height=50)
         self.toolbar_frame.pack(side=tk.TOP, fill=tk.X)
         self.toolbar_frame.pack_propagate(False)
@@ -212,7 +208,7 @@ class KasirApp:
 
         info_struktur = ttk.Label(
             frame_config, 
-            text="📌 Struktur Kolom Excel Baku (A s.d. K): [A] No Trx | [B] Kode Produk | [C] Judul | [D] Jumlah | [E] Harga Satuan | [F] Total Per Produk | [G-H] Metode (Tunai/Non-Tunai) | [I] Diskon | [J] Member | [K] Waktu", 
+            text="📌 Struktur Kolom Excel Baku (A s.d. K): [A] No | [B] Kode Produk | [C] Judul | [D] Jumlah | [E] Harga Satuan | [F] Total Per Produk | [G-H] Metode (Tunai/Non-Tunai) | [I] Diskon | [J] Member | [K] Waktu", 
             font=("Arial", 8, "italic"),
             foreground="darkslategray"
         )
@@ -224,7 +220,7 @@ class KasirApp:
         self.txt_notes = tk.Text(frame_notes, width=35, height=6, font=("Consolas", 8))
         self.txt_notes.pack(fill="both", expand=True, padx=2, pady=2)
         
-        notes_content = f"[ PATCH LOG NOTES - ONLINE v0.9.9 ]\n-----------------------------\n{self.dynamic_changelog}"
+        notes_content = f"[ PATCH LOG NOTES - ONLINE v1.0.0 ]\n-----------------------------\n{self.dynamic_changelog}"
         self.txt_notes.insert("1.0", notes_content)
         self.txt_notes.config(state="disabled")
 
@@ -264,9 +260,7 @@ class KasirApp:
 
         self.tree.pack(fill="both", expand=True)
 
-        # Bind event Double Click untuk ubah Qty langsung pada tabel keranjang
         self.tree.bind("<Double-1>", self.buka_popup_edit_qty_langsung)
-
         self.tree.bind("<Delete>", self.hapus_item_terpilih)
         self.tree.bind("<BackSpace>", self.hapus_item_terpilih)
         self.tree.bind("<Escape>", lambda event: self.ent_search.focus_force())
@@ -297,7 +291,6 @@ class KasirApp:
         btn_finish.pack(side="right", padx=5)
 
     def setup_halaman_laporan(self, parent):
-        """Antarmuka Menu Laporan dengan Tombol Setoran Harian & Ringkasan Tegas"""
         frame_top_rep = ttk.Frame(parent)
         frame_top_rep.pack(fill="x", padx=10, pady=10)
 
@@ -308,11 +301,9 @@ class KasirApp:
         self.combo_sheet_report.pack(side="left", padx=5)
         self.combo_sheet_report.bind("<<ComboboxSelected>>", self.muat_tabel_laporan_excel)
 
-        # Tombol Setoran Harian (menggantikan tombol muat ulang sebelumnya)
         btn_setoran = ttk.Button(frame_top_rep, text="📊 Setoran Harian", command=self.proses_setoran_harian)
         btn_setoran.pack(side="left", padx=15)
 
-        # Panel Tampilan Bold Ringkasan Setoran Harian di Bagian Atas Laporan
         self.frame_summary_box = tk.Frame(parent, bg="#dcd6d0", bd=2, relief="groove")
         self.frame_summary_box.pack(fill="x", padx=10, pady=5)
 
@@ -325,7 +316,6 @@ class KasirApp:
         self.lbl_setoran_grand = tk.Label(self.frame_summary_box, text="GRAND TOTAL SETORAN: Rp. 0", font=("Arial", 12, "bold"), bg="#dcd6d0", fg="#0000aa")
         self.lbl_setoran_grand.pack(side="right", padx=15, pady=8)
 
-        # Tabel / Treeview Pratinjau Laporan dengan Grid lengkap
         table_frame_rep = ttk.Frame(parent)
         table_frame_rep.pack(fill="both", expand=True, padx=10, pady=5)
 
@@ -387,6 +377,11 @@ class KasirApp:
                     header_text = val2
                 else:
                     header_text = f"Kolom {i+1}"
+                
+                # Ubah teks "No Transaksi" menjadi "No" khusus pada tampilan laporan
+                if header_text.lower() in ["no transaksi", "no. transaksi"]:
+                    header_text = "No"
+
                 headers.append(header_text)
 
             cols = [f"col_{i}" for i in range(df_raw.shape[1])]
@@ -402,7 +397,12 @@ class KasirApp:
                     if len(cell_val) > max_len:
                         max_len = len(cell_val)
                 
-                col_width = max(max_len * 9, 90)
+                # Buat kolom No lebih ramping (lebar minimal pas untuk teks "No")
+                if idx == 0:
+                    col_width = 45
+                else:
+                    col_width = max(max_len * 9, 90)
+
                 self.report_tree.column(col, width=col_width, anchor="w", stretch=False)
 
             for r_idx in range(2, len(df_raw)):
@@ -412,20 +412,17 @@ class KasirApp:
                     vals.append("")
                 self.report_tree.insert("", "end", values=vals[:len(cols)])
 
-            # Hitung otomatis ringkasan setoran harian dari data excel sheet aktif
             self.hitung_dan_tampilkan_setoran(df_raw)
 
         except Exception as e:
             print("Gagal memuat pratinjau laporan:", e)
 
     def hitung_dan_tampilkan_setoran(self, df_raw):
-        """Menghitung total tunai (Kolom G/Indeks 6) dan non-tunai (Kolom H/Indeks 7)"""
         total_tunai = 0.0
         total_nontunai = 0.0
 
         for r_idx in range(2, len(df_raw)):
             try:
-                # Kolom G (Indeks 6) = Tunai
                 val_g = df_raw.iloc[r_idx, 6] if df_raw.shape[1] > 6 else 0
                 if pd.notna(val_g):
                     total_tunai += float(str(val_g).replace(",", ""))
@@ -433,7 +430,6 @@ class KasirApp:
                 pass
 
             try:
-                # Kolom H (Indeks 7) = Non Tunai
                 val_h = df_raw.iloc[r_idx, 7] if df_raw.shape[1] > 7 else 0
                 if pd.notna(val_h):
                     total_nontunai += float(str(val_h).replace(",", ""))
@@ -447,7 +443,6 @@ class KasirApp:
         self.lbl_setoran_grand.config(text=f"GRAND TOTAL SETORAN: Rp. {grand_setoran:,.0f}")
 
     def proses_setoran_harian(self):
-        """Menyimpan / menulis baris Rekap Setoran Harian ke file Excel output secara tegas & bold"""
         if not self.target_file_path or not self.wb_target:
             messagebox.showwarning("Peringatan", "Pilih File Target Output terlebih dahulu!")
             return
@@ -474,15 +469,15 @@ class KasirApp:
                 except: pass
             grand_setoran = total_tunai + total_nontunai
 
-            max_r = ws.max_row + 2  # Beri jarak 1 baris kosong
+            max_r = ws.max_row + 2
             
-            # Tulis baris rekapitulasi setoran harian
+            # Merge cell A hingga D untuk judul "SETORAN HARIAN (TUTUP BUKU)"
+            ws.merge_cells(start_row=max_r, start_column=1, end_row=max_r, end_column=4)
             ws[f"A{max_r}"] = "SETORAN HARIAN (TUTUP BUKU)"
             ws[f"G{max_r}"] = total_tunai
             ws[f"H{max_r}"] = total_nontunai
             ws[f"F{max_r}"] = grand_setoran
 
-            # Format Bold dan Border untuk baris rekap setoran
             bold_font = Font(name="Calibri", size=11, bold=True)
             currency_format = '"Rp" #,##0'
             thin_border = Border(
@@ -505,7 +500,6 @@ class KasirApp:
             messagebox.showerror("Error", f"Gagal memproses setoran harian:\n{str(e)}")
 
     def buka_popup_edit_qty_langsung(self, event=None):
-        """Memungkinkan user mengubah jumlah (Qty) produk terinput dengan melakukan double-click pada baris tabel keranjang"""
         selected_items = self.tree.selection()
         if not selected_items:
             return
@@ -541,7 +535,6 @@ class KasirApp:
                 if new_q <= 0:
                     raise ValueError()
                 
-                # Update qty dan hitung ulang total produk
                 current_cart_item['jumlah'] = new_q
                 current_cart_item['total'] = new_q * current_cart_item['harga_akhir']
                 
@@ -564,37 +557,49 @@ class KasirApp:
             header_font = Font(name="Calibri", size=11, bold=True)
             align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
+            # Warna background standar untuk header (Abu-abu terang) & warna khusus sedikit lebih gelap untuk Non Tunai
+            fill_standard = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+            fill_nontunai = PatternFill(start_color="BFBFBF", end_color="BFBFBF", fill_type="solid")
+
             single_cols = [
-                ("A", "No Transaksi"), ("B", "Kode Produk"), ("C", "Judul"), ("D", "Jumlah"),
+                ("A", "No"), ("B", "Kode Produk"), ("C", "Judul"), ("D", "Jumlah"),
                 ("E", "Harga satuan"), ("F", "Total Per Produk"), ("I", "Diskon"), ("J", "Member"), ("K", "Waktu")
             ]
 
             for col, text in single_cols:
                 ws.merge_cells(f"{col}1:{col}2")
-                cell = ws[f"{col}1"]
-                cell.value = text
-                cell.font = header_font
-                cell.alignment = align_center
-                ws[f"{col}1"].border = thin_border
-                ws[f"{col}2"].border = thin_border
+                cell1 = ws[f"{col}1"]
+                cell2 = ws[f"{col}2"]
+                cell1.value = text
+                cell1.font = header_font
+                cell1.alignment = align_center
+                cell1.fill = fill_standard
+                cell2.fill = fill_standard
+                cell1.border = thin_border
+                cell2.border = thin_border
 
             ws.merge_cells("G1:H1")
             cell_g1 = ws["G1"]
             cell_g1.value = "Metode"
             cell_g1.font = header_font
             cell_g1.alignment = align_center
+            cell_g1.fill = fill_standard
+            ws["G1"].border = thin_border
+            ws["H1"].border = thin_border
 
+            # Tunai (Kolom G)
             ws["G2"].value = "TUNAI"
             ws["G2"].font = header_font
             ws["G2"].alignment = align_center
+            ws["G2"].fill = fill_standard
+            ws["G2"].border = thin_border
 
+            # Non Tunai (Kolom H) dengan warna background sedikit lebih gelap
             ws["H2"].value = "NON TUNAI"
             ws["H2"].font = header_font
             ws["H2"].alignment = align_center
-
-            for r in [1, 2]:
-                for c in ["G", "H"]:
-                    ws[f"{c}{r}"].border = thin_border
+            ws["H2"].fill = fill_nontunai
+            ws["H2"].border = thin_border
 
             self.wb_target.save(self.target_file_path)
 
