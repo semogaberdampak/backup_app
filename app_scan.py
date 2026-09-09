@@ -18,7 +18,7 @@ VERSION_URL = "https://raw.githubusercontent.com/semogaberdampak/backup_app/main
 class KasirApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Takom Kasir v0.9.4")
+        self.root.title("Takom Kasir v0.9.5")
 
         # AUTO LAUNCH FULL SCREEN (MAXIMIZED)
         self.root.state('zoomed')
