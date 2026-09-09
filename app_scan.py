@@ -102,11 +102,9 @@ class KasirApp:
         notes_content = (
             "[ PATCH LOG NOTES ]\n"
             "-----------------------------\n"
-            "v.0.9.2 (Excel Header Auto-Format):\n"
-            "• Auto-checks & generates structured\n"
-            "  merged headers on initial sheet launch.\n"
-            "• Standardized columns A to K permanently.\n"
-            "• Version incremented to v0.9.2."
+            "FITUR UTAMA - sudah full ONLINE \n"
+            "v.0.9.3 (Excel Header Auto-Format):\n"
+            "Output Excel diseragamkan"            
         )
         self.txt_notes.insert("1.0", notes_content)
         self.txt_notes.config(state="disabled")
