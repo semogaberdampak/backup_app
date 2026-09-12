@@ -9,14 +9,23 @@ import threading
 import tempfile
 import json
 
-# Import modul sync master cloud/cache
-from sync_master import MasterDataSync
+# ==============================================================================
+# SAFE IMPORT: Mencegah crash jika modul sync_master belum tersedia
+# ==============================================================================
+try:
+    from sync_master import MasterDataSync
+except ImportError:
+    print("PERINGATAN: 'sync_master.py' tidak ditemukan. Menggunakan mode Offline/Dummy.")
+    class MasterDataSync:
+        def load_data(self):
+            # Return dataframe kosong sebagai fallback agar aplikasi tetap bisa dijalankan
+            return pd.DataFrame(columns=['barcode', 'judul', 'harga']), False
 
 class KasirApp:
     def __init__(self, root):
         self.root = root
-        # UPDATE VERSI & PATCH v1.3.4 (Direct Thermal Printing Patch)
-        self.root.title("Takom Kasir v1.3.4 - Direct Thermal Printing Patch")
+        # UPDATE VERSI v1.4.0
+        self.root.title("Takom Kasir v1.4.0 - Enhanced Stability & Performance")
 
         # AUTO LAUNCH FULL SCREEN (MAXIMIZED)
         self.root.state('zoomed')
@@ -35,12 +44,17 @@ class KasirApp:
         self.target_file_path = ""
         self.wb_target = None
         
-        # Konfigurasi Nota Advance (Dapat dikustomisasi via Tombol Khusus)
+        # Cache untuk performa laporan (Mencegah baca Excel berulang)
+        self.cached_report_df = None
+        self.cached_sheet_name = None
+        
+        # Konfigurasi Nota Advance
         self.config_nota = {
             "nama_toko": "TOKO KASIR TAKOM",
             "sub_nama": "Pusat Grosir & Eceran Terlengkap",
             "alamat_toko": "Jl. Raya Toko No. 88, Kota Anda",
             "telepon_toko": "Telp: 0812-3456-7890",
+            "nama_kasir": "Admin", # BARU: Nama kasir dinamis
             "info_tambahan": "Terima Kasih Atas Kunjungan Anda",
             "pesan_penutup": "Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.",
             "lebar_kertas": 48,
@@ -70,7 +84,9 @@ class KasirApp:
             if os.path.exists("config_nota.json"):
                 with open("config_nota.json", "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    self.config_nota.update(data)
+                    # Update hanya key yang ada, pertahankan default untuk key baru
+                    for key, value in data.items():
+                        self.config_nota[key] = value
         except Exception as e:
             print("Gagal memuat config nota:", e)
 
@@ -115,6 +131,7 @@ class KasirApp:
         popup.geometry(f'{width}x{height}+{max(0, x)}+{max(0, y)}')
 
     def create_rounded_button(self, parent, text, command, bg_color, fg_color):
+        """Membuat tombol rounded yang bisa di-update warnanya tanpa di-destroy"""
         canvas = tk.Canvas(parent, width=170, height=36, bg="#2c3e50", highlightthickness=0, cursor="hand2")
         
         def draw_button(color, text_color):
@@ -128,10 +145,13 @@ class KasirApp:
             canvas.create_rectangle(x1, y1 + r, x2, y2 - r, fill=color, outline=color)
             canvas.create_text(85, 18, text=text, fill=text_color, font=("Arial", 9, "bold"))
 
-        draw_button(bg_color, fg_color)
+        # Simpan referensi fungsi draw agar bisa dipanggil dari luar untuk update warna
+        canvas.draw = draw_button
+        canvas.draw(bg_color, fg_color)
+        
         canvas.bind("<Button-1>", lambda e: command())
-        canvas.bind("<Enter>", lambda e: draw_button("#16a085" if bg_color == "#1abc9c" else "#34495e", fg_color))
-        canvas.bind("<Leave>", lambda e: draw_button(bg_color, fg_color))
+        canvas.bind("<Enter>", lambda e: canvas.draw("#16a085" if bg_color == "#1abc9c" else "#34495e", fg_color))
+        canvas.bind("<Leave>", lambda e: canvas.draw(bg_color, fg_color))
         return canvas
 
     def setup_main_layout(self):
@@ -139,17 +159,18 @@ class KasirApp:
         self.toolbar_frame.pack(side=tk.TOP, fill=tk.X)
         self.toolbar_frame.pack_propagate(False)
 
-        self.btn_transaksi_canvas = self.create_rounded_button(
+        # Buat tombol SEKALI SAJA, simpan referensinya
+        self.btn_transaksi = self.create_rounded_button(
             self.toolbar_frame, "🛒 Transaksi Kasir", 
             lambda: self.switch_tab("transaksi"), "#1abc9c", "white"
         )
-        self.btn_transaksi_canvas.pack(side=tk.LEFT, padx=10, pady=7)
+        self.btn_transaksi.pack(side=tk.LEFT, padx=10, pady=7)
 
-        self.btn_laporan_canvas = self.create_rounded_button(
+        self.btn_laporan = self.create_rounded_button(
             self.toolbar_frame, "📊 Laporan & Sheet", 
             lambda: self.switch_tab("laporan"), "#34495e", "white"
         )
-        self.btn_laporan_canvas.pack(side=tk.LEFT, padx=5, pady=7)
+        self.btn_laporan.pack(side=tk.LEFT, padx=5, pady=7)
 
         self.btn_custom_nota = ttk.Button(
             self.toolbar_frame, text="⚙️ Advanced Custom Nota", 
@@ -168,33 +189,31 @@ class KasirApp:
         self.switch_tab("transaksi")
 
     def switch_tab(self, tab_name):
+        """Optimasi: Hanya ubah warna tombol, jangan destroy/recreate"""
         if tab_name == "transaksi":
             self.frame_laporan.pack_forget()
             self.frame_transaksi.pack(fill=tk.BOTH, expand=True)
-            self.btn_transaksi_canvas.destroy()
-            self.btn_laporan_canvas.destroy()
             
-            self.btn_transaksi_canvas = self.create_rounded_button(self.toolbar_frame, "🛒 Transaksi Kasir", lambda: self.switch_tab("transaksi"), "#1abc9c", "white")
-            self.btn_transaksi_canvas.pack(side=tk.LEFT, padx=10, pady=7)
-            self.btn_laporan_canvas = self.create_rounded_button(self.toolbar_frame, "📊 Laporan & Sheet", lambda: self.switch_tab("laporan"), "#34495e", "white")
-            self.btn_laporan_canvas.pack(side=tk.LEFT, padx=5, pady=7)
+            # Update warna tombol
+            self.btn_transaksi.draw("#1abc9c", "white")
+            self.btn_laporan.draw("#34495e", "white")
+            
             self.ent_search.focus_force()
+            
         elif tab_name == "laporan":
             self.frame_transaksi.pack_forget()
             self.frame_laporan.pack(fill=tk.BOTH, expand=True)
-            self.btn_transaksi_canvas.destroy()
-            self.btn_laporan_canvas.destroy()
             
-            self.btn_transaksi_canvas = self.create_rounded_button(self.toolbar_frame, "🛒 Transaksi Kasir", lambda: self.switch_tab("transaksi"), "#34495e", "white")
-            self.btn_transaksi_canvas.pack(side=tk.LEFT, padx=10, pady=7)
-            self.btn_laporan_canvas = self.create_rounded_button(self.toolbar_frame, "📊 Laporan & Sheet", lambda: self.switch_tab("laporan"), "#1abc9c", "white")
-            self.btn_laporan_canvas.pack(side=tk.LEFT, padx=5, pady=7)
+            # Update warna tombol
+            self.btn_transaksi.draw("#34495e", "white")
+            self.btn_laporan.draw("#1abc9c", "white")
+            
             self.refresh_data_laporan()
 
     def buka_popup_custom_nota_advance(self):
         popup = tk.Toplevel(self.root)
         popup.title("Advanced Custom Format Nota & Struk Kasir")
-        self.center_popup(popup, 840, 620)
+        self.center_popup(popup, 840, 650) # Tinggi ditambah sedikit untuk field kasir
         popup.transient(self.root)
         popup.grab_set()
         popup.bind("<Escape>", lambda e: popup.destroy())
@@ -238,6 +257,12 @@ class KasirApp:
         ent_telp = ttk.Entry(scrollable_inner, width=38)
         ent_telp.insert(0, self.config_nota["telepon_toko"])
         ent_telp.pack(anchor="w", padx=10)
+
+        # BARU: Field Nama Kasir Default
+        ttk.Label(scrollable_inner, text="Nama Kasir Default:", font=("Arial", 9, "bold")).pack(anchor="w", padx=10, pady=(6, 2))
+        ent_kasir = ttk.Entry(scrollable_inner, width=38)
+        ent_kasir.insert(0, self.config_nota.get("nama_kasir", "Admin"))
+        ent_kasir.pack(anchor="w", padx=10)
 
         ttk.Label(scrollable_inner, text="Pesan Footer / Terima Kasih:", font=("Arial", 9, "bold")).pack(anchor="w", padx=10, pady=(6, 2))
         ent_footer = ttk.Entry(scrollable_inner, width=38)
@@ -287,6 +312,7 @@ class KasirApp:
                 sub = ent_sub.get()
                 alamat = ent_alamat.get()
                 telp = ent_telp.get()
+                kasir = ent_kasir.get()
                 footer = ent_footer.get()
                 penutup = ent_penutup.get()
                 show_logo = logo_var.get()
@@ -305,7 +331,7 @@ class KasirApp:
                     preview_lines.append(telp.center(min(lebar, 48)))
                 
                 preview_lines.append(line)
-                preview_lines.append("No. Trx  : #1025           Kasir : Admin".ljust(min(lebar, 48)))
+                preview_lines.append(f"No. Trx  : #1025           Kasir : {kasir}".ljust(min(lebar, 48)))
                 preview_lines.append("Waktu   : 12/09/2026 16:22".ljust(min(lebar, 48)))
                 preview_lines.append(line)
                 preview_lines.append("Rosario Kayu Wangi Eksklusif".ljust(min(lebar, 48)))
@@ -331,7 +357,7 @@ class KasirApp:
             except:
                 pass
 
-        for widget_entry in [ent_nama, ent_sub, ent_alamat, ent_telp, ent_footer, ent_penutup, spin_font, spin_lebar]:
+        for widget_entry in [ent_nama, ent_sub, ent_alamat, ent_telp, ent_kasir, ent_footer, ent_penutup, spin_font, spin_lebar]:
             widget_entry.bind("<KeyRelease>", update_preview)
         
         chk_logo.configure(command=update_preview)
@@ -345,6 +371,7 @@ class KasirApp:
                 self.config_nota["sub_nama"] = ent_sub.get().strip()
                 self.config_nota["alamat_toko"] = ent_alamat.get().strip()
                 self.config_nota["telepon_toko"] = ent_telp.get().strip()
+                self.config_nota["nama_kasir"] = ent_kasir.get().strip() or "Admin"
                 self.config_nota["info_tambahan"] = ent_footer.get().strip()
                 self.config_nota["pesan_penutup"] = ent_penutup.get().strip()
                 self.config_nota["lebar_kertas"] = int(spin_lebar.get())
@@ -476,6 +503,9 @@ class KasirApp:
         self.combo_sheet_report.pack(side="left", padx=5)
         self.combo_sheet_report.bind("<<ComboboxSelected>>", self.muat_tabel_laporan_excel)
 
+        btn_refresh = ttk.Button(frame_top_rep, text="🔄 Refresh Data", command=self.force_refresh_laporan)
+        btn_refresh.pack(side="left", padx=5)
+
         btn_setoran = ttk.Button(frame_top_rep, text="📊 Setoran Harian", command=self.proses_setoran_harian)
         btn_setoran.pack(side="left", padx=15)
 
@@ -507,6 +537,13 @@ class KasirApp:
         sb_x.pack(side="bottom", fill="x")
         self.report_tree.pack(side="left", fill="both", expand=True)
 
+    def force_refresh_laporan(self):
+        """Memaksa pembacaan ulang file Excel (menghapus cache)"""
+        self.cached_report_df = None
+        self.cached_sheet_name = None
+        self.refresh_data_laporan()
+        messagebox.showinfo("Info", "Data laporan berhasil diperbarui dari file Excel.")
+
     def refresh_data_laporan(self):
         if not self.target_file_path or not self.wb_target:
             self.combo_sheet_report['values'] = []
@@ -533,59 +570,67 @@ class KasirApp:
         if not sheet_name or sheet_name not in self.wb_target.sheetnames:
             return
 
-        try:
-            df_raw = pd.read_excel(self.target_file_path, sheet_name=sheet_name, header=None)
-            if df_raw.empty or len(df_raw) < 1:
+        # OPTIMASI: Gunakan cache jika sheet yang sama belum berubah
+        if self.cached_report_df is not None and self.cached_sheet_name == sheet_name:
+            df_raw = self.cached_report_df
+        else:
+            try:
+                df_raw = pd.read_excel(self.target_file_path, sheet_name=sheet_name, header=None)
+                self.cached_report_df = df_raw
+                self.cached_sheet_name = sheet_name
+            except Exception as e:
+                messagebox.showerror("Error", f"Gagal membaca file Excel:\n{str(e)}")
                 return
 
-            row1 = df_raw.iloc[0].values if len(df_raw) > 0 else []
-            row2 = df_raw.iloc[1].values if len(df_raw) > 1 else []
+        if df_raw.empty or len(df_raw) < 1:
+            return
 
-            headers = []
-            for i in range(df_raw.shape[1]):
-                val1 = str(row1[i]).strip() if i < len(row1) and pd.notna(row1[i]) else ""
-                val2 = str(row2[i]).strip() if i < len(row2) and pd.notna(row2[i]) else ""
-                
-                if val1 and val2 and val1 != val2:
-                    header_text = f"{val1} - {val2}"
-                elif val1:
-                    header_text = val1
-                elif val2:
-                    header_text = val2
-                else:
-                    header_text = f"Kolom {i+1}"
-                
-                if header_text.lower() in ["no transaksi", "no. transaksi"]:
-                    header_text = "No"
+        row1 = df_raw.iloc[0].values if len(df_raw) > 0 else []
+        row2 = df_raw.iloc[1].values if len(df_raw) > 1 else []
 
-                headers.append(header_text)
-
-            cols = [f"col_{i}" for i in range(df_raw.shape[1])]
-            self.report_tree["columns"] = cols
+        headers = []
+        for i in range(df_raw.shape[1]):
+            val1 = str(row1[i]).strip() if i < len(row1) and pd.notna(row1[i]) else ""
+            val2 = str(row2[i]).strip() if i < len(row2) and pd.notna(row2[i]) else ""
             
-            for idx, col in enumerate(cols):
-                h_text = headers[idx] if idx < len(headers) else col
-                self.report_tree.heading(col, text=h_text)
-                
-                max_len = len(h_text)
-                for r_idx in range(1, len(df_raw)):
-                    cell_val = str(df_raw.iloc[r_idx, idx]) if pd.notna(df_raw.iloc[r_idx, idx]) else ""
-                    if len(cell_val) > max_len:
-                        max_len = len(cell_val)
-                
-                col_width = 45 if idx == 0 else max(max_len * 9, 90)
-                self.report_tree.column(col, width=col_width, anchor="w", stretch=False)
+            if val1 and val2 and val1 != val2:
+                header_text = f"{val1} - {val2}"
+            elif val1:
+                header_text = val1
+            elif val2:
+                header_text = val2
+            else:
+                header_text = f"Kolom {i+1}"
+            
+            if header_text.lower() in ["no transaksi", "no. transaksi"]:
+                header_text = "No"
 
-            for r_idx in range(2, len(df_raw)):
-                row_vals = df_raw.iloc[r_idx].values
-                vals = [str(val) if pd.notna(val) else "" for val in row_vals]
-                while len(vals) < len(cols):
-                    vals.append("")
-                self.report_tree.insert("", "end", values=vals[:len(cols)])
+            headers.append(header_text)
 
-            self.hitung_dan_tampilkan_setoran(df_raw)
-        except Exception as e:
-            print("Gagal memuat pratinjau laporan:", e)
+        cols = [f"col_{i}" for i in range(df_raw.shape[1])]
+        self.report_tree["columns"] = cols
+        
+        for idx, col in enumerate(cols):
+            h_text = headers[idx] if idx < len(headers) else col
+            self.report_tree.heading(col, text=h_text)
+            
+            max_len = len(h_text)
+            for r_idx in range(1, min(50, len(df_raw))): # Batasi sampling untuk performa
+                cell_val = str(df_raw.iloc[r_idx, idx]) if pd.notna(df_raw.iloc[r_idx, idx]) else ""
+                if len(cell_val) > max_len:
+                    max_len = len(cell_val)
+            
+            col_width = 45 if idx == 0 else max(max_len * 9, 90)
+            self.report_tree.column(col, width=col_width, anchor="w", stretch=False)
+
+        for r_idx in range(2, len(df_raw)):
+            row_vals = df_raw.iloc[r_idx].values
+            vals = [str(val) if pd.notna(val) else "" for val in row_vals]
+            while len(vals) < len(cols):
+                vals.append("")
+            self.report_tree.insert("", "end", values=vals[:len(cols)])
+
+        self.hitung_dan_tampilkan_setoran(df_raw)
 
     def hitung_dan_tampilkan_setoran(self, df_raw):
         total_tunai = 0.0
@@ -631,7 +676,12 @@ class KasirApp:
             return
 
         try:
-            df_raw = pd.read_excel(self.target_file_path, sheet_name=sheet_name, header=None)
+            # Gunakan cache jika ada, jika tidak baca ulang
+            if self.cached_report_df is not None and self.cached_sheet_name == sheet_name:
+                df_raw = self.cached_report_df
+            else:
+                df_raw = pd.read_excel(self.target_file_path, sheet_name=sheet_name, header=None)
+
             selected_row_values = self.report_tree.item(selected_items[0], "values")
             if not selected_row_values:
                 return
@@ -639,11 +689,15 @@ class KasirApp:
             target_no_trx = None
             clicked_excel_row_idx = -1
 
+            # Pencarian yang lebih robust
             for r_idx in range(2, len(df_raw)):
-                r_vals = [str(df_raw.iloc[r_idx, c]) if pd.notna(df_raw.iloc[r_idx, c]) else "" for c in range(min(3, df_raw.shape[1]))]
-                if r_vals and r_vals[0] == str(selected_row_values[0]) and r_vals[1] == str(selected_row_values[1]):
-                    clicked_excel_row_idx = r_idx
-                    break
+                try:
+                    r_vals = [str(df_raw.iloc[r_idx, c]) if pd.notna(df_raw.iloc[r_idx, c]) else "" for c in range(min(3, df_raw.shape[1]))]
+                    if r_vals and str(r_vals[0]).strip() == str(selected_row_values[0]).strip() and str(r_vals[1]).strip() == str(selected_row_values[1]).strip():
+                        clicked_excel_row_idx = r_idx
+                        break
+                except:
+                    continue
             
             if clicked_excel_row_idx == -1:
                 for i, child_id in enumerate(self.report_tree.get_children()):
@@ -657,10 +711,13 @@ class KasirApp:
 
             current_r = clicked_excel_row_idx
             while current_r >= 2:
-                val_a = str(df_raw.iloc[current_r, 0]).strip()
-                if val_a and val_a.isdigit():
-                    target_no_trx = val_a
-                    break
+                try:
+                    val_a = str(df_raw.iloc[current_r, 0]).strip()
+                    if val_a and val_a.replace(".", "").isdigit():
+                        target_no_trx = val_a
+                        break
+                except:
+                    pass
                 current_r -= 1
 
             if not target_no_trx:
@@ -673,11 +730,11 @@ class KasirApp:
 
             start_scan = current_r
             while start_scan < len(df_raw):
-                val_a_check = str(df_raw.iloc[start_scan, 0]).strip()
-                if val_a_check and val_a_check.isdigit() and val_a_check != target_no_trx and start_scan != current_r:
-                    break
-                
                 try:
+                    val_a_check = str(df_raw.iloc[start_scan, 0]).strip()
+                    if val_a_check and val_a_check.replace(".", "").isdigit() and val_a_check != target_no_trx and start_scan != current_r:
+                        break
+                    
                     barcode = str(df_raw.iloc[start_scan, 1]) if pd.notna(df_raw.iloc[start_scan, 1]) else ""
                     judul = str(df_raw.iloc[start_scan, 2]) if pd.notna(df_raw.iloc[start_scan, 2]) else ""
                     qty = float(df_raw.iloc[start_scan, 3]) if pd.notna(df_raw.iloc[start_scan, 3]) else 1
@@ -741,7 +798,12 @@ class KasirApp:
 
         try:
             ws = self.wb_target[sheet_name]
-            df_raw = pd.read_excel(self.target_file_path, sheet_name=sheet_name, header=None)
+            
+            # Gunakan cache untuk perhitungan agar cepat
+            if self.cached_report_df is not None and self.cached_sheet_name == sheet_name:
+                df_raw = self.cached_report_df
+            else:
+                df_raw = pd.read_excel(self.target_file_path, sheet_name=sheet_name, header=None)
             
             total_tunai = 0.0
             total_nontunai = 0.0
@@ -785,6 +847,11 @@ class KasirApp:
                     cell.number_format = currency_format
 
             self.wb_target.save(self.target_file_path)
+            
+            # Invalidasi cache karena file Excel telah dimodifikasi
+            self.cached_report_df = None
+            self.cached_sheet_name = None
+            
             self.muat_tabel_laporan_excel()
             messagebox.showinfo("Sukses", f"Setoran Harian berhasil ditutup & disimpan ke Excel!")
         except Exception as e:
@@ -904,7 +971,7 @@ class KasirApp:
                 val = ws[f"A{r}"].value
                 if val is not None:
                     try:
-                        last_trx = int(val)
+                        last_trx = int(float(str(val).strip()))
                         break
                     except ValueError:
                         continue
@@ -968,6 +1035,11 @@ class KasirApp:
                 self.combo_sheet['values'] = sheets
                 if sheets:
                     self.combo_sheet.current(0)
+                
+                # Reset cache karena file baru dibuka
+                self.cached_report_df = None
+                self.cached_sheet_name = None
+                
                 self.hitung_nomor_transaksi_berikutnya()
             except Exception as e:
                 messagebox.showerror("Error Excel", f"Gagal membaca file target:\n{str(e)}")
@@ -999,6 +1071,11 @@ class KasirApp:
                     self.wb_target.save(self.target_file_path)
                     self.combo_sheet['values'] = self.wb_target.sheetnames
                     self.combo_sheet.set(name)
+                    
+                    # Reset cache
+                    self.cached_report_df = None
+                    self.cached_sheet_name = None
+                    
                     self.hitung_nomor_transaksi_berikutnya()
                     popup.destroy()
 
@@ -1172,7 +1249,7 @@ class KasirApp:
         total_qty = 0
 
         for idx, item in enumerate(self.cart, 1):
-            diskon_str = f"{int(item['diskon'])}%" if item['diskon'].is_integer() else f"{item['diskon']}%"
+            diskon_str = f"{int(item['diskon'])}%" if float(item['diskon']).is_integer() else f"{item['diskon']}%"
             self.tree.insert("", "end", values=(
                 idx, item['barcode'], item['judul'], item['jumlah'],
                 f"Rp. {item['harga_normal']:,.0f}", diskon_str,
@@ -1199,6 +1276,9 @@ class KasirApp:
         lebar = self.config_nota["lebar_kertas"]
         line_sep = "-" * lebar
         
+        # Gunakan nama kasir dari config, fallback ke "Admin"
+        nama_kasir = self.config_nota.get("nama_kasir", "Admin")
+        
         struk = []
         struk.append("".center(lebar))
         if self.config_nota["tampilkan_logo_teks"]:
@@ -1213,7 +1293,7 @@ class KasirApp:
         struk.append(line_sep)
         if is_reprint:
             struk.append("*** RE-PRINT NOTA KASIR ***".center(lebar))
-        struk.append(f"No. Trx  : #{no_trx}".ljust(lebar // 2) + f"Kasir : Admin".rjust(lebar - (lebar // 2)))
+        struk.append(f"No. Trx  : #{no_trx}".ljust(lebar // 2) + f"Kasir : {nama_kasir}".rjust(lebar - (lebar // 2)))
         struk.append(f"Waktu   : {waktu_str}".ljust(lebar))
         if catatan_member:
             struk.append(f"Member  : {catatan_member}".ljust(lebar))
@@ -1250,7 +1330,12 @@ class KasirApp:
         # PROSES CETAK RAW KE PRINTER
         try:
             if os.name == 'nt':
-                import win32print
+                try:
+                    import win32print
+                except ImportError:
+                    messagebox.showerror("Error Printer", "Modul 'pywin32' tidak ditemukan.\nSilakan instal via: pip install pywin32")
+                    return
+                
                 # Ambil printer default pada sistem Windows
                 printer_name = win32print.GetDefaultPrinter()
                 
@@ -1417,6 +1502,10 @@ class KasirApp:
                         ws[f"{col_l}{max_r}"].border = thin_border
 
                 self.wb_target.save(self.target_file_path)
+                
+                # Invalidasi cache laporan karena ada data baru
+                self.cached_report_df = None
+                self.cached_sheet_name = None
                 
                 self.cetak_nota_thermal_80mm_custom(no_trx_num, metode, bayar_val, kembali_val, catatan_val if ada_diskon else "", is_reprint=False)
 
