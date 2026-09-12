@@ -24,8 +24,8 @@ except ImportError:
 class KasirApp:
     def __init__(self, root):
         self.root = root
-        # UPDATE VERSI v1.4.0
-        self.root.title("Takom Kasir v1.4.0 - Enhanced Stability & Performance")
+        # UPDATE VERSI v1.4.1
+        self.root.title("Takom Kasir v1.4.1 - Enhanced Stability & Performance")
 
         # AUTO LAUNCH FULL SCREEN (MAXIMIZED)
         self.root.state('zoomed')
