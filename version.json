@@ -1,5 +1,5 @@
 {
-    "version": "v1.0.0",
+    "version": "v1.3.4",
     "download_url": "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/app_scan.py",
-    "changelog": "- v1.0.0\n- Mengubah header 'No Transaksi' menjadi 'No'\n- Merge cell Setoran Harian (A s.d. D) pada Excel\n- Warna background header Non-Tunai lebih gelap dari Tunai"
+    "changelog": "akom Kasir v1.3.4 - Direct Thermal Printing Patch"
 }
