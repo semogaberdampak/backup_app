@@ -1,5 +1,5 @@
 {
-    "version": "v1.4.0",
+    "version": "v1.4.1",
     "download_url": "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/app_scan.py",
-    "changelog": "Takom Kasir v1.4.0 - Enhanced Stability & Performance"
+    "changelog": "Takom Kasir v1.4.0 - Kustomisasi Nama Pengguna pada Pengaturan Nota (default : Admin)"
 }
