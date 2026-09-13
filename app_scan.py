@@ -12,9 +12,9 @@ import logging          # BARU: Untuk logging error
 import subprocess        # BARU: Pengganti os.system yang aman
 import pathlib           # BARU: Untuk path konfigurasi user
 
-# ==============================================================================
+# ===============================================================================
 # SAFE IMPORT: Mencegah crash jika modul sync_master belum tersedia
-# ==============================================================================
+# ===============================================================================
 try:
     from sync_master import MasterDataSync
 except ImportError:
