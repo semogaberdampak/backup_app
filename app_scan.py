@@ -52,8 +52,8 @@ def setup_app_logging():
 class KasirApp:
     def __init__(self, root):
         self.root = root
-        # UPDATE VERSI v1.4.2 (Security Hardened)
-        self.root.title("Takom Kasir v1.4.2 - Stabilitas & Keamanan")
+        # UPDATE VERSI v1.4.5 (Prompt Alert user pemilihan sheet)
+        self.root.title("Takom Kasir v1.4.5 - Pop-up user untuk memilih sheet")
 
         # AUTO LAUNCH FULL SCREEN (MAXIMIZED)
         self.root.state('zoomed')
@@ -1085,15 +1085,64 @@ class KasirApp:
                 self.wb_target = openpyxl.load_workbook(file_path)
                 sheets = self.wb_target.sheetnames
                 self.combo_sheet['values'] = sheets
+                
                 if sheets:
                     self.combo_sheet.current(0)
+                
                 self.cached_report_df = None
                 self.cached_sheet_name = None
                 self.hitung_nomor_transaksi_berikutnya()
+
+                # ==============================================================
+                # BARU: Prompt Pilih Sheet & Tombol +Sheet setelah File Dipilih
+                # ==============================================================
+                self.buka_popup_pilih_atau_tambah_sheet_pertama()
+
             except Exception as e:
                 self._show_safe_error(self.root, "Error Excel",
                     "Gagal membaca file target. Pastikan file bukan file Excel yang rusak atau sedang dibuka di aplikasi lain.",
                     exception=e, context="pilih_target_file")
+
+    def buka_popup_pilih_atau_tambah_sheet_pertama(self):
+        """Prompt interaktif untuk memilih sheet atau menambah sheet baru setelah file Excel dipilih."""
+        popup = tk.Toplevel(self.root)
+        popup.title("Pilih / Tambah Sheet Target")
+        self.center_popup(popup, 360, 210)
+        popup.transient(self.root)
+        popup.grab_set()
+        popup.bind("<Escape>", lambda e: popup.destroy())
+
+        ttk.Label(popup, text="Pilih Sheet untuk Transaksi:", font=("Arial", 10, "bold")).pack(pady=(15, 5))
+
+        sheets = self.wb_target.sheetnames if self.wb_target else []
+        combo_chosen_sheet = ttk.Combobox(popup, values=sheets, width=28, state="readonly")
+        if sheets:
+            combo_chosen_sheet.current(0)
+        combo_chosen_sheet.pack(pady=5)
+
+        def aksi_tambah_sheet_di_popup():
+            popup.destroy()
+            self.tambah_sheet_baru()
+
+        btn_frame = ttk.Frame(popup)
+        btn_frame.pack(pady=15)
+
+        btn_tambah_plus = ttk.Button(btn_frame, text="➕ Tambah Sheet Baru", command=aksi_tambah_sheet_di_popup)
+        btn_tambah_plus.pack(side="left", padx=5)
+
+        def aksi_pilih():
+            selected_sheet = combo_chosen_sheet.get()
+            if selected_sheet:
+                self.combo_sheet.set(selected_sheet)
+                self.on_sheet_changed()
+                popup.destroy()
+                self.ent_search.focus_force()
+            else:
+                messagebox.showwarning("Peringatan", "Pilih salah satu sheet terlebih dahulu!", parent=popup)
+
+        btn_ok = ttk.Button(btn_frame, text="Gunakan Sheet Ini", command=aksi_pilih)
+        btn_ok.pack(side="left", padx=5)
+        popup.bind("<Return>", lambda e: aksi_pilih())
 
     def tambah_sheet_baru(self):
         if not self.target_file_path or not self.wb_target:
