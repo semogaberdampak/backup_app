@@ -49,8 +49,7 @@ def setup_app_logging():
 class KasirApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Takom Kasir v1.5.0 - Penambahan NOMAN untuk setiap Sheet baru (tidak berharap NOMAN) berjaga-jaga lebih indah,
-            menampilkan nama file pada tab laporan & sheet")
+        self.root.title("Takom Kasir v1.5.3 - AutoFocus & Icon Fix")
         self.root.state('zoomed')
         try:
             self.root.iconbitmap("logo.ico")
