@@ -1,5 +1,5 @@
 {
-    "version": "v1.5.0",
+    "version": "v1.5.3",
     "download_url": "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/app_scan.py",
     "changelog": "Takom Kasir v1.5.0 - Penambahan NOMAN untuk setiap Sheet baru (tidak berharap NOMAN) berjaga-jaga lebih indah & menampilkan nama file pada tab laporan"
 }
