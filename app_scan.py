@@ -5,6 +5,7 @@ import openpyxl
 from openpyxl.styles import Border, Side, Alignment, Font, PatternFill
 from datetime import datetime
 import os
+from dotenv import load_dotenv
 import threading
 import tempfile
 import json
@@ -12,13 +13,21 @@ import logging
 import subprocess
 import pathlib
 
+# Load environment variables dari file .env
+load_dotenv()
+
 # ============================================================================
-# 1. KONFIGURASI SUPABASE
+# 1. KONFIGURASI SUPABASE (Menggunakan Environment Variables)
 # ============================================================================
-SUPABASE_URL = "https://ibhkaoacvxonfhfxjyzr.supabase.co"
-# Pastikan menggunakan Service Role Key jika RLS memblokir, atau Anon Key dengan RLS Policy yang benar
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaGthb2FjdnhvbmZoZnhqeXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MDU3MDAsImV4cCI6MjEwNDM4MTcwMH0.dt_maWfhaJVTrk9cl5aL_LVp5PjlYtoWKFxPXTTuh6g"
-SUPABASE_TABLE = "master_produk"
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_TABLE = os.getenv("SUPABASE_TABLE", "master_produk")
+
+# Validasi konfigurasi
+if not SUPABASE_URL or not SUPABASE_KEY:
+    print("❌ ERROR: SUPABASE_URL dan SUPABASE_KEY harus diatur di file .env")
+    print("   Silakan buat file .env dan isi dengan kredensial Supabase Anda")
+    print("   File .env TIDAK BOLEH di-commit ke Git!")
 
 try:
     from supabase import create_client, Client
@@ -65,7 +74,7 @@ def setup_app_logging():
 class KasirApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Takom Kasir v1.5.4 - Menu Rubah Harga Auto sinkron all Cabang")
+        self.root.title("Takom Kasir v1.5.5 - Menu Rubah Harga Auto sinkron all Cabang dan nambah security")
         self.root.state('zoomed')
         try:
             self.root.iconbitmap("logo.ico")
