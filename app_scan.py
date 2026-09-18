@@ -16,9 +16,9 @@ import pathlib
 # Load environment variables dari file .env
 load_dotenv()
 
-# ============================================================================
+# ===========================================================
 # 1. KONFIGURASI SUPABASE (Menggunakan Environment Variables)
-# ============================================================================
+# ===========================================================
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SUPABASE_TABLE = os.getenv("SUPABASE_TABLE", "master_produk")
