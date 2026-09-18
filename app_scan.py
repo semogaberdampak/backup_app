@@ -13,22 +13,24 @@ import subprocess
 import pathlib
 
 # ============================================================================
-# 1. KONFIGURASI SUPABASE (Ubah dengan kredensial proyek Anda)
+# 1. KONFIGURASI SUPABASE
 # ============================================================================
-SUPABASE_URL = "https://ibhkaoacvxonfhfxjyzr.supabase.co"  # Ganti dengan URL Supabase Anda
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaGthb2FjdnhvbmZoZnhqeXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MDU3MDAsImV4cCI6MjEwNDM4MTcwMH0.dt_maWfhaJVTrk9cl5aL_LVp5PjlYtoWKFxPXTTuh6g"         # Ganti dengan API Key Anda
-SUPABASE_TABLE = "master_produk"                            # Ganti dengan nama tabel produk Anda
+SUPABASE_URL = "https://ibhkaoacvxonfhfxjyzr.supabase.co"
+# Pastikan menggunakan Service Role Key jika RLS memblokir, atau Anon Key dengan RLS Policy yang benar
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaGthb2FjdnhvbmZoZnhqeXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MDU3MDAsImV4cCI6MjEwNDM4MTcwMH0.dt_maWfhaJVTrk9cl5aL_LVp5PjlYtoWKFxPXTTuh6g"
+SUPABASE_TABLE = "master_produk"
 
 try:
     from supabase import create_client, Client
     SUPABASE_AVAILABLE = True
+    print("✅ Library Supabase berhasil diimport")
 except ImportError:
     SUPABASE_AVAILABLE = False
-    print("PERINGATAN: Library 'supabase' tidak ditemukan. Install dengan: pip install supabase")
+    print("❌ PERINGATAN: Library 'supabase' tidak ditemukan! Jalankan: pip install supabase")
 
-# ==============================================================================
+# ============================================================================
 # 2. SAFE IMPORT: Mencegah crash jika modul sync_master belum tersedia
-# ==============================================================================
+# ============================================================================
 try:
     from sync_master import MasterDataSync
 except ImportError:
@@ -37,9 +39,9 @@ except ImportError:
         def load_data(self):
             return pd.DataFrame(columns=['barcode', 'judul', 'harga']), False
 
-# ==============================================================================
+# ============================================================================
 # 3. Setup Logging Terpusat
-# ==============================================================================
+# ============================================================================
 def setup_app_logging():
     try:
         log_dir = pathlib.Path.home() / ".takom_kasir"
@@ -76,15 +78,16 @@ class KasirApp:
         self.is_loading = True
 
         # --- Inisialisasi Supabase Client ---
+        self.is_supabase_ready = False
+        self.supabase = None
         if SUPABASE_AVAILABLE and "your-project-id" not in SUPABASE_URL:
             try:
                 self.supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
                 self.is_supabase_ready = True
+                print("✅ Supabase Client berhasil diinisialisasi")
             except Exception as e:
-                print(f"Gagal koneksi ke Supabase: {e}")
+                print(f"❌ Gagal koneksi ke Supabase: {e}")
                 self.is_supabase_ready = False
-        else:
-            self.is_supabase_ready = False
         # ------------------------------------
 
         # File & Sheet Target
@@ -283,7 +286,7 @@ class KasirApp:
             self.refresh_data_laporan()
 
     # =========================================================================
-    # FITUR BARU: Ubah Harga Produk dengan Sync Supabase
+    # FITUR BARU: Ubah Harga Produk dengan Sync Supabase (ROBUST)
     # =========================================================================
     def buka_popup_ubah_harga(self):
         if not getattr(self, 'is_supabase_ready', False):
@@ -295,33 +298,37 @@ class KasirApp:
 
         popup = tk.Toplevel(self.root)
         popup.title("Ubah Harga Produk (Live Sync Supabase)")
-        self.center_popup(popup, 450, 320)
+        self.center_popup(popup, 480, 360)
         popup.transient(self.root)
         popup.grab_set()
         popup.bind("<Escape>", lambda e: popup.destroy())
 
-        frame_cari = ttk.LabelFrame(popup, text="1. Cari Produk")
+        frame_cari = ttk.LabelFrame(popup, text="1. Cari Produk (Barcode)")
         frame_cari.pack(fill="x", padx=15, pady=10)
         
-        ttk.Label(frame_cari, text="Barcode:").pack(side="left", padx=5, pady=5)
-        ent_barcode = ttk.Entry(frame_cari, width=20, font=("Arial", 10, "bold"))
-        ent_barcode.pack(side="left", padx=5, pady=5)
+        row_cari = ttk.Frame(frame_cari)
+        row_cari.pack(fill="x", padx=10, pady=8)
+        ttk.Label(row_cari, text="Barcode:").pack(side="left", padx=5)
+        ent_barcode = ttk.Entry(row_cari, width=22, font=("Arial", 10, "bold"))
+        ent_barcode.pack(side="left", padx=5)
         ent_barcode.focus_force()
 
         frame_info = ttk.LabelFrame(popup, text="2. Informasi Produk")
         frame_info.pack(fill="x", padx=15, pady=5)
         
         lbl_nama = ttk.Label(frame_info, text="Nama Produk: -", font=("Arial", 9), foreground="gray")
-        lbl_nama.pack(anchor="w", padx=10, pady=2)
+        lbl_nama.pack(anchor="w", padx=10, pady=(6, 2))
         lbl_harga_lama = ttk.Label(frame_info, text="Harga Saat Ini: Rp. 0", font=("Arial", 10, "bold"), foreground="blue")
-        lbl_harga_lama.pack(anchor="w", padx=10, pady=2)
+        lbl_harga_lama.pack(anchor="w", padx=10, pady=(2, 6))
 
         frame_baru = ttk.LabelFrame(popup, text="3. Harga Baru")
         frame_baru.pack(fill="x", padx=15, pady=5)
         
-        ttk.Label(frame_baru, text="Rp.").pack(side="left", padx=5, pady=5)
-        ent_harga_baru = ttk.Entry(frame_baru, width=15, font=("Arial", 11, "bold"))
-        ent_harga_baru.pack(side="left", padx=5, pady=5)
+        row_baru = ttk.Frame(frame_baru)
+        row_baru.pack(fill="x", padx=10, pady=8)
+        ttk.Label(row_baru, text="Rp.", font=("Arial", 10, "bold")).pack(side="left", padx=5)
+        ent_harga_baru = ttk.Entry(row_baru, width=18, font=("Arial", 11, "bold"))
+        ent_harga_baru.pack(side="left", padx=5)
 
         produk_ditemukan = {}
 
@@ -345,13 +352,13 @@ class KasirApp:
                 ent_harga_baru.selection_range(0, tk.END)
             else:
                 produk_ditemukan.clear()
-                lbl_nama.config(text="Nama Produk: Tidak Ditemukan", foreground="red")
-                lbl_harga_lama.config(text="Harga Saat Ini: Rp. 0")
+                lbl_nama.config(text="Nama Produk: ❌ Tidak Ditemukan", foreground="red")
+                lbl_harga_lama.config(text="Harga Saat Ini: Rp. 0", foreground="gray")
                 ent_harga_baru.delete(0, tk.END)
                 messagebox.showwarning("Tidak Ditemukan", "Barcode tidak terdaftar di database master.", parent=popup)
 
-        btn_cari = ttk.Button(frame_cari, text="Cari", command=cari_produk)
-        btn_cari.pack(side="left", padx=5, pady=5)
+        btn_cari = ttk.Button(frame_cari, text="🔍 Cari", command=cari_produk)
+        btn_cari.pack(side="left", padx=10, pady=5)
         ent_barcode.bind("<Return>", cari_produk)
 
         def simpan_ke_supabase():
@@ -371,26 +378,43 @@ class KasirApp:
             popup.update()
 
             try:
-                # 1. Update ke Supabase
+                print(f"\n=== DEBUG SEBELUM UPDATE ===")
+                # 1. Lakukan SELECT dulu untuk memastikan datanya ada dan nama kolom benar
+                debug_select = self.supabase.table(SUPABASE_TABLE).select("barcode, harga").eq("barcode", produk_ditemukan['barcode']).execute()
+                print(f"Hasil SELECT dari Supabase: {debug_select.data}")
+                print(f"============================\n")
+
+                if not debug_select.data:
+                    raise Exception(f"Tidak ditemukan data dengan barcode='{produk_ditemukan['barcode']}'. Cek RLS Policy atau nama kolom di Supabase.")
+
+                # 2. Update ke Supabase
                 response = self.supabase.table(SUPABASE_TABLE).update({
                     "harga": harga_baru
                 }).eq("barcode", produk_ditemukan['barcode']).execute()
 
-                # 2. Update data lokal (cache) agar langsung terpakai tanpa restart
+                print(f"✅ Response dari Supabase: data={response.data} count={response.count}")
+
+                # 3. Update data lokal (cache) agar langsung terpakai tanpa restart
                 idx = self.df_master.index[self.df_master['barcode'].astype(str) == produk_ditemukan['barcode']].tolist()
                 if idx:
                     self.df_master.at[idx[0], 'harga'] = harga_baru
 
                 messagebox.showinfo("Sukses", 
                     f"Harga '{produk_ditemukan['judul']}' berhasil diubah menjadi Rp. {harga_baru:,.0f}\n"
-                    "Data telah tersinkronisasi ke Supabase & Cache Lokal.", parent=popup)
+                    "Data telah tersinkronisasi ke Database & Cache Lokal.", parent=popup)
+                
+                # PERBAIKAN TKINTER: Reset cursor SEBELUM destroy
+                popup.config(cursor="")
                 popup.destroy()
                 self.ent_search.focus_force()
                 
             except Exception as e:
-                messagebox.showerror("Gagal Sync", f"Gagal mengupdate ke Supabase:\n{str(e)}", parent=popup)
-            finally:
+                print(f"❌ ERROR saat update Supabase: {e}")
+                import traceback
+                traceback.print_exc()
+                # PERBAIKAN TKINTER: Reset cursor agar user bisa mencoba lagi jika error
                 popup.config(cursor="")
+                messagebox.showerror("Gagal Sync", f"Gagal mengupdate ke Supabase:\n{str(e)}", parent=popup)
 
         frame_aksi = ttk.Frame(popup)
         frame_aksi.pack(fill="x", padx=15, pady=15)
@@ -560,9 +584,7 @@ class KasirApp:
                 messagebox.showinfo("Sukses", "Format advanced kustom nota berhasil disimpan!", parent=popup)
                 popup.destroy()
             except Exception as e:
-                self._show_safe_error(popup, "Error",
-                    "Gagal menyimpan format pengaturan. Silakan coba lagi.",
-                    exception=e, context="simpan_pengaturan_custom_nota")
+                self._show_safe_error(popup, "Error", "Gagal menyimpan format pengaturan. Silakan coba lagi.", exception=e, context="simpan_pengaturan_custom_nota")
 
         ttk.Button(popup, text="SIMPAN FORMAT ADVANCE", command=simpan_pengaturan).pack(side="bottom", pady=12)
 
@@ -771,10 +793,8 @@ class KasirApp:
         popup.grab_set()
         popup.configure(bg="#f0f0f0")
 
-        ttk.Label(popup, text=f"📝 NOMAN untuk Transaksi #{no_transaksi}", 
-                 font=("Arial", 11, "bold")).pack(pady=(15, 5))
-        ttk.Label(popup, text="Masukkan nilai numerik (boleh diawali 0):", 
-                 font=("Arial", 9)).pack(pady=(0, 5))
+        ttk.Label(popup, text=f"📝 NOMAN untuk Transaksi #{no_transaksi}", font=("Arial", 11, "bold")).pack(pady=(15, 5))
+        ttk.Label(popup, text="Masukkan nilai numerik (boleh diawali 0):", font=("Arial", 9)).pack(pady=(0, 5))
 
         ent_noman = ttk.Entry(popup, width=25, font=("Arial", 14, "bold"), justify="center")
         ent_noman.pack(pady=5)
@@ -1366,7 +1386,7 @@ class KasirApp:
         self.is_loading = False
         def update_label():
             if self.is_online:
-                self.lbl_status.config(text=f"[  ONLINE Cloud: {len(self.df_master):,} Produk ]", foreground="green")
+                self.lbl_status.config(text=f"[ 🟢 ONLINE Cloud: {len(self.df_master):,} Produk ]", foreground="green")
             else:
                 self.lbl_status.config(text=f"[ 🟡 OFFLINE Cache: {len(self.df_master):,} Produk ]", foreground="orange")
         self.root.after(0, update_label)
