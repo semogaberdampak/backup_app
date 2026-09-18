@@ -12,9 +12,9 @@ import logging
 import subprocess
 import pathlib
 
-# ==============================================================================
+# ============================================================================
 # 1. KONFIGURASI SUPABASE (Ubah dengan kredensial proyek Anda)
-# ==============================================================================
+# ============================================================================
 SUPABASE_URL = "https://ibhkaoacvxonfhfxjyzr.supabase.co"  # Ganti dengan URL Supabase Anda
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaGthb2FjdnhvbmZoZnhqeXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MDU3MDAsImV4cCI6MjEwNDM4MTcwMH0.dt_maWfhaJVTrk9cl5aL_LVp5PjlYtoWKFxPXTTuh6g"         # Ganti dengan API Key Anda
 SUPABASE_TABLE = "master_produk"                            # Ganti dengan nama tabel produk Anda
