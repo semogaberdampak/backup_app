@@ -74,7 +74,7 @@ def setup_app_logging():
 class KasirApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Takom Kasir v1.5.5 - Menu Rubah Harga Auto sinkron all Cabang dan nambah security")
+        self.root.title("Takom Kasir v1.6.0 - Menu Tambah Produk & Auto Sinkronisasi Database. Mantul")
         self.root.state('zoomed')
         try:
             self.root.iconbitmap("logo.ico")
@@ -234,9 +234,16 @@ class KasirApp:
             canvas.create_text(85, 18, text=text, fill=text_color, font=("Arial", 9, "bold"))
         canvas.draw = draw_button
         canvas.draw(bg_color, fg_color)
+        # FITUR GLOBAL KEYBOARD: canvas tombol bisa difokus & di-ENTER/SPACE-kan
+        canvas.command = command
+        canvas.configure(takefocus=1)
         canvas.bind("<Button-1>", lambda e: command())
+        canvas.bind("<Return>", lambda e: command())
+        canvas.bind("<space>", lambda e: command())
         canvas.bind("<Enter>", lambda e: canvas.draw("#16a085" if bg_color == "#1abc9c" else "#34495e", fg_color))
         canvas.bind("<Leave>", lambda e: canvas.draw(bg_color, fg_color))
+        canvas.bind("<FocusIn>", lambda e: canvas.draw("#16a085" if bg_color == "#1abc9c" else "#34495e", fg_color))
+        canvas.bind("<FocusOut>", lambda e: canvas.draw(bg_color, fg_color))
         return canvas
 
     def setup_main_layout(self):
@@ -270,6 +277,14 @@ class KasirApp:
         )
         self.btn_custom_nota.pack(side=tk.RIGHT, padx=15, pady=8)
 
+        # --- TOMBOL BARU: Tambah Produk (F2) ---
+        self.btn_tambah_produk = ttk.Button(
+            self.toolbar_frame, text="➕ Tambah Produk (F2)",
+            command=self.buka_popup_tambah_produk
+        )
+        self.btn_tambah_produk.pack(side=tk.RIGHT, padx=15, pady=8)
+        # --------------------------------------
+
         self.container = ttk.Frame(self.root)
         self.container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
@@ -279,6 +294,7 @@ class KasirApp:
         self.setup_halaman_transaksi(self.frame_transaksi)
         self.setup_halaman_laporan(self.frame_laporan)
         self.switch_tab("transaksi")
+        self.setup_global_keyboard()
 
     def switch_tab(self, tab_name):
         if tab_name == "transaksi":
@@ -430,6 +446,173 @@ class KasirApp:
         
         ttk.Button(frame_aksi, text="Batal", command=popup.destroy).pack(side="left", padx=5)
         ttk.Button(frame_aksi, text="💾 Simpan & Sync ke Supabase", command=simpan_ke_supabase).pack(side="right", padx=5)
+
+    # =========================================================================
+    # FITUR BARU: Tambah Produk (Struktur Kolom sama persis dengan tabel
+    #             master_produk: barcode -> judul -> harga)
+    # =========================================================================
+    def buka_popup_tambah_produk(self):
+        if not getattr(self, 'is_supabase_ready', False):
+            messagebox.showerror("Error Koneksi",
+                "Klien Supabase belum terkonfigurasi atau library belum diinstal.\n"
+                "1. Pastikan 'pip install supabase' sudah dijalankan.\n"
+                "2. Isi SUPABASE_URL dan SUPABASE_KEY di file .env.")
+            return
+
+        popup = tk.Toplevel(self.root)
+        popup.title("Tambah Produk Baru (Live Sync Supabase)")
+        self.center_popup(popup, 500, 480)
+        popup.transient(self.root)
+        popup.grab_set()
+        popup.bind("<Escape>", lambda e: (popup.destroy(), self.ent_search.focus_force()))
+
+        # --- 1. Form input dengan susunan kolom sama seperti tabel master_produk
+        frame_form = ttk.LabelFrame(popup, text="1. Data Produk (Urut Kolom: barcode | judul | harga)")
+        frame_form.pack(fill="x", padx=15, pady=10)
+
+        row_barcode = ttk.Frame(frame_form)
+        row_barcode.pack(fill="x", padx=10, pady=(8, 2))
+        ttk.Label(row_barcode, text="Barcode:", width=12, font=("Arial", 10)).pack(side="left")
+        ent_barcode = ttk.Entry(row_barcode, font=("Arial", 11, "bold"))
+        ent_barcode.pack(side="left", fill="x", expand=True)
+
+        row_judul = ttk.Frame(frame_form)
+        row_judul.pack(fill="x", padx=10, pady=2)
+        ttk.Label(row_judul, text="Judul:", width=12, font=("Arial", 10)).pack(side="left")
+        ent_judul = ttk.Entry(row_judul, font=("Arial", 11))
+        ent_judul.pack(side="left", fill="x", expand=True)
+
+        row_harga = ttk.Frame(frame_form)
+        row_harga.pack(fill="x", padx=10, pady=(2, 8))
+        ttk.Label(row_harga, text="Harga (Rp.):", width=12, font=("Arial", 10)).pack(side="left")
+        ent_harga = ttk.Entry(row_harga, font=("Arial", 11, "bold"))
+        ent_harga.pack(side="left", fill="x", expand=True)
+
+        # --- 2. Preview baris tabel (kolom identik dengan tabel master_produk)
+        frame_preview = ttk.LabelFrame(popup, text="2. Preview Baris Tabel (Sama seperti tabel master_produk)")
+        frame_preview.pack(fill="both", expand=True, padx=15, pady=5)
+        tree_preview = ttk.Treeview(frame_preview, columns=("barcode", "judul", "harga"), show="headings", height=4)
+        tree_preview.heading("barcode", text="barcode")
+        tree_preview.heading("judul", text="judul")
+        tree_preview.heading("harga", text="harga")
+        tree_preview.column("barcode", width=130, anchor="w")
+        tree_preview.column("judul", width=230, anchor="w")
+        tree_preview.column("harga", width=90, anchor="e")
+        tree_preview.pack(fill="both", expand=True, padx=5, pady=5)
+
+        def update_preview(event=None):
+            for r in tree_preview.get_children():
+                tree_preview.delete(r)
+            tree_preview.insert("", "end", values=(
+                ent_barcode.get().strip(),
+                ent_judul.get().strip(),
+                ent_harga.get().strip()
+            ))
+
+        for ent in (ent_barcode, ent_judul, ent_harga):
+            ent.bind("<KeyRelease>", update_preview)
+        update_preview()
+
+        ent_barcode.focus_force()
+
+        def fokus_judul(event=None):
+            ent_judul.focus_force()
+            return "break"
+
+        def fokus_harga(event=None):
+            ent_harga.focus_force()
+            return "break"
+
+        def simpan_produk(event=None):
+            barcode_baru = ent_barcode.get().strip()
+            judul_baru = ent_judul.get().strip()
+
+            if not barcode_baru or not judul_baru:
+                messagebox.showwarning("Peringatan", "Barcode dan Judul produk wajib diisi!", parent=popup)
+                return
+            try:
+                harga_baru = float(ent_harga.get().replace(",", "").strip())
+                if harga_baru < 0:
+                    raise ValueError("Harga tidak boleh negatif")
+            except ValueError:
+                messagebox.showerror("Input Error", "Masukkan nominal harga yang valid (angka)!", parent=popup)
+                return
+            if self.is_loading:
+                messagebox.showwarning("Proses Loading", "Database master sedang dimuat. Mohon tunggu sebentar!", parent=popup)
+                return
+
+            # Cek duplikat barcode (lokal dulu, lalu cloud)
+            try:
+                if self.df_master is not None and not self.df_master.empty:
+                    duplikat = self.df_master[self.df_master['barcode'].astype(str) == barcode_baru]
+                    if not duplikat.empty:
+                        messagebox.showwarning("Duplikat", f"Barcode '{barcode_baru}' sudah terdaftar di tabel master!", parent=popup)
+                        return
+                cek_cloud = self.supabase.table(SUPABASE_TABLE).select("barcode").eq("barcode", barcode_baru).execute()
+                if cek_cloud.data:
+                    messagebox.showwarning("Duplikat", f"Barcode '{barcode_baru}' sudah terdaftar di tabel master!", parent=popup)
+                    return
+            except Exception as e:
+                logging.error(f"Gagal cek duplikat barcode: {e}", exc_info=True)
+
+            popup.config(cursor="watch")
+            popup.update()
+
+            try:
+                # 1. Insert ke tabel Supabase (kolom: barcode, judul, harga)
+                response = self.supabase.table(SUPABASE_TABLE).insert({
+                    "barcode": barcode_baru,
+                    "judul": judul_baru,
+                    "harga": harga_baru
+                }).execute()
+                print(f"✅ Response insert Supabase: data={response.data}")
+
+                # 2. Update data lokal (df_master) agar langsung bisa dipakai tanpa restart
+                baris_baru = pd.DataFrame([{"barcode": barcode_baru, "judul": judul_baru, "harga": harga_baru}])
+                if self.df_master is None or self.df_master.empty:
+                    self.df_master = baris_baru
+                else:
+                    self.df_master = pd.concat([self.df_master, baris_baru], ignore_index=True)
+                try:
+                    self.sync_tool.df_master = self.df_master
+                except Exception:
+                    pass
+
+                # 3. Perbarui cache lokal agar data bertahan saat aplikasi dibuka lagi (offline)
+                try:
+                    self.df_master.to_parquet("master_cache.parquet", index=False)
+                except Exception as e:
+                    print(f"⚠️ Gagal memperbarui cache parquet: {e}")
+
+                # 4. Perbarui label status jumlah produk
+                self.lbl_status.config(
+                    text=f"[ 🟢 ONLINE Cloud: {len(self.df_master):,} Produk ]",
+                    foreground="green"
+                )
+
+                popup.config(cursor="")
+                popup.destroy()
+                messagebox.showinfo("Sukses",
+                    f"Produk '{judul_baru}' berhasil ditambahkan ke tabel '{SUPABASE_TABLE}'.\n"
+                    "Data telah tersinkronisasi ke Database & Cache Lokal.")
+                self.ent_search.focus_force()
+
+            except Exception as e:
+                print(f"❌ ERROR saat insert Supabase: {e}")
+                import traceback
+                traceback.print_exc()
+                popup.config(cursor="")
+                messagebox.showerror("Gagal Sync", f"Gagal menambahkan produk ke Supabase:\n{str(e)}", parent=popup)
+
+        # Navigasi: ENTER berpindah field / submit, ESC menutup popup
+        ent_barcode.bind("<Return>", fokus_judul)
+        ent_judul.bind("<Return>", fokus_harga)
+        ent_harga.bind("<Return>", simpan_produk)
+
+        frame_aksi = ttk.Frame(popup)
+        frame_aksi.pack(fill="x", padx=15, pady=15)
+        ttk.Button(frame_aksi, text="Batal (ESC)", command=popup.destroy).pack(side="left", padx=5)
+        ttk.Button(frame_aksi, text="💾 Simpan & Sync (ENTER)", command=simpan_produk).pack(side="right", padx=5)
 
     def buka_popup_custom_nota_advance(self):
         popup = tk.Toplevel(self.root)
@@ -1177,7 +1360,7 @@ class KasirApp:
                     if time_val:
                         waktu_reprint = time_val
                     if barcode or judul:
-                        items_reprint.append({"judul": judul, "jumlah": int(qty), "harga_akhir": harga, "total": subtotal, "diskon": diskon})
+                        items_reprint.append({"barcode": barcode, "judul": judul, "jumlah": int(qty), "harga_akhir": harga, "total": subtotal, "diskon": diskon})
                 except Exception:
                     pass
                 start_scan += 1
@@ -1649,6 +1832,240 @@ class KasirApp:
             self.update_tabel_keranjang()
             self.ent_search.focus_force()
 
+    # =========================================================================
+    # FITUR BARU: KEYBOARD GLOBAL (bind_all) - Enter, Escape, Arrow Up/Down
+    # =========================================================================
+    def setup_global_keyboard(self):
+        """Registrasi binding keyboard global untuk seluruh aplikasi."""
+        self._tree_nav_pos = {}
+        self.root.bind_all("<Return>", self._global_enter, add="+")
+        self.root.bind_all("<Escape>", self._global_escape, add="+")
+        self.root.bind_all("<Down>", lambda event: self._global_arrow(event, 1), add="+")
+        self.root.bind_all("<Up>", lambda event: self._global_arrow(event, -1), add="+")
+        self.root.bind("<F2>", lambda event: self.buka_popup_tambah_produk())
+
+    def _event_widget(self, event):
+        """Ambil widget sumber event dengan aman (widget bisa sudah mati/destroy)."""
+        try:
+            w = event.widget
+        except Exception:
+            return None
+        if w is None or isinstance(w, str):  # tkinter 3.14 mengembalikan str bila widget sudah dihapus
+            return None
+        try:
+            if not w.winfo_exists():
+                return None
+        except Exception:
+            return None
+        return w
+
+    def _popup_aktif(self):
+        """Deteksi popup modal (Toplevel yang sedang tampil). Popdown combobox dikecualikan."""
+        for w in self.root.winfo_children():
+            if not isinstance(w, tk.Toplevel):
+                continue
+            nama = w.winfo_name().lower()
+            if "popdown" in nama or "tooltip" in nama:
+                continue
+            try:
+                if w.winfo_viewable():
+                    return w
+            except tk.TclError:
+                pass
+        return None
+
+    def _popdown_aktif(self):
+        """True bila dropdown (popdown) combobox sedang terbuka.
+        Deteksi via grab: Tk 9 menempatkan popdown di luar root.winfo_children()."""
+        try:
+            g = str(self.root.tk.call("grab", "current"))
+        except tk.TclError:
+            return False
+        return "popdown" in g.lower()
+
+    def _punya_binding(self, widget, seq):
+        """True bila widget atau toplevel-nya sudah punya binding untuk sequence tertentu
+        (artinya binding lokal/class sudah menangani event SEBELUM bind_all)."""
+        try:
+            if widget.bind(seq):
+                return True
+        except tk.TclError:
+            return True  # widget sudah mati -> binding lokal yang memicu, biarkan
+        try:
+            tl = widget.winfo_toplevel()
+            if tl.bind(seq):
+                return True
+        except tk.TclError:
+            return True
+        return False
+
+    def _fokuskan(self, widget):
+        try:
+            widget.focus_force()
+        except tk.TclError:
+            pass
+
+    def _daftar_fokus(self, container):
+        """Daftar widget yang bisa difokus, diurutkan berdasarkan posisi geometri (atas->bawah, kiri->kanan)."""
+        hasil = []
+
+        def rekursif(w):
+            for c in w.winfo_children():
+                if isinstance(c, tk.Toplevel):
+                    continue
+                cls = c.winfo_class()
+                ikut = cls in ("Entry", "TEntry", "TButton", "Button",
+                               "Combobox", "TCombobox", "Treeview", "Canvas")
+                if cls == "Canvas" and not hasattr(c, "command"):
+                    ikut = False  # hanya canvas tombol custom yang bisa difokus
+                if ikut:
+                    try:
+                        if not c.winfo_viewable():
+                            continue
+                    except tk.TclError:
+                        continue
+                    nonaktif = False
+                    try:
+                        nonaktif = str(c.cget("state")) == "disabled"
+                    except tk.TclError:
+                        try:
+                            nonaktif = c.instate(["disabled"])
+                        except (tk.TclError, AttributeError):
+                            nonaktif = False
+                    if not nonaktif:
+                        hasil.append(c)
+                rekursif(c)
+
+        rekursif(container)
+        hasil.sort(key=lambda w: (w.winfo_rooty(), w.winfo_rootx()))
+        return hasil
+
+    def _geser_fokus(self, asal, arah):
+        """Pindahkan fokus ke widget fokusable berikutnya searah `arah` (+1/-1), wrap-around,
+        melewati Treeview yang kosong."""
+        daftar = self._daftar_fokus(self.root)
+        if not daftar:
+            return
+        try:
+            idx = daftar.index(asal)
+        except ValueError:
+            idx = -1 if arah > 0 else 0
+        n = len(daftar)
+        for i in range(1, n + 1):
+            kandidat = daftar[(idx + arah * i) % n]
+            try:
+                if kandidat.winfo_class() == "Treeview" and not kandidat.get_children():
+                    continue  # lewati tabel kosong
+            except tk.TclError:
+                continue
+            self._fokuskan(kandidat)
+            if kandidat.winfo_class() == "Treeview":
+                anak = kandidat.get_children()
+                if anak:
+                    kandidat.selection_set(anak[0])
+                    kandidat.focus(anak[0])
+                    try:
+                        kandidat.see(anak[0])
+                    except tk.TclError:
+                        pass
+            return
+
+    def _global_enter(self, event):
+        """ENTER global: aktifkan tombol yang sedang difokus, atau buka popup edit qty
+        dari tabel keranjang. Binding lokal (entry scan, popup, dll) diprioritaskan."""
+        w = self._event_widget(event)
+        if w is None:
+            return
+        if self._punya_binding(w, "<Return>"):
+            return  # binding lokal/class sudah menangani (scan, submit popup, dll)
+        cls = w.winfo_class()
+        if cls in ("TButton", "Button"):
+            try:
+                w.invoke()
+            except tk.TclError:
+                pass
+            return
+        if cls == "Canvas" and hasattr(w, "command"):
+            try:
+                w.command()
+            except Exception:
+                pass
+            return
+        if self._popup_aktif() is None and w is getattr(self, "tree", None):
+            self.buka_popup_edit_qty_langsung()
+
+    def _global_escape(self, event):
+        """ESC global: tutup popup yang belum punya binding Escape, lalu kembalikan
+        fokus ke widget 'rumah' tab aktif (ent_search / combo_sheet_report)."""
+        popup = self._popup_aktif()
+        if popup is not None:
+            try:
+                popup.destroy()
+            except tk.TclError:
+                pass
+        w = self._event_widget(event)
+        if self._popdown_aktif():
+            return  # jangan rebut fokus saat dropdown combobox sedang terbuka
+        try:
+            if self.frame_transaksi.winfo_viewable():
+                self._fokuskan(self.ent_search)
+            else:
+                self._fokuskan(self.combo_sheet_report)
+        except tk.TclError:
+            pass
+
+    def _global_arrow(self, event, arah):
+        """Arrow Up/Down global: navigasi antar widget (arah +1 = bawah, -1 = atas).
+        Treeview/Combobox/Listbox/Spinbox dibiarkan memakai perilaku native-nya."""
+        if self._popup_aktif() is not None:
+            return  # popup punya perilaku sendiri (pilih produk, edit qty, dll)
+        w = self._event_widget(event)
+        if w is None:
+            return
+        # Bila binding lokal sudah memindahkan fokus (mis. ent_search -> tabel), hentikan.
+        cur = None
+        try:
+            cur = self.root.focus_get()
+        except tk.TclError:
+            cur = None
+        if cur is not None and cur is not w:
+            return
+        cls = w.winfo_class()
+        if cls in ("Combobox", "TCombobox", "Listbox", "Spinbox", "Text"):
+            return  # biarkan native
+        if cls == "Treeview":
+            self._tree_arrow(w, arah)
+            return
+        self._geser_fokus(w, arah)
+
+    def _tree_arrow(self, tv, arah):
+        """Arrow pada Treeview: native class binding sudah menggerakkan selection lebih dulu.
+        Bila di baris terbatas (batas atas/bawah) dan tidak bergerak, pindahkan fokus keluar."""
+        anak = tv.get_children()
+        if not anak:
+            return
+        item_fokus = None
+        try:
+            item_fokus = tv.focus()
+        except tk.TclError:
+            item_fokus = None
+        if not item_fokus or item_fokus not in anak:
+            tv.selection_set(anak[0])
+            tv.focus(anak[0])
+            try:
+                tv.see(anak[0])
+            except tk.TclError:
+                pass
+            self._tree_nav_pos[str(tv)] = 0
+            return
+        idx = anak.index(item_fokus)
+        sebelumnya = self._tree_nav_pos.get(str(tv), idx)
+        if arah > 0 and idx >= len(anak) - 1 and sebelumnya == idx:
+            self._geser_fokus(tv, 1)       # sudah di baris terakhir -> keluar ke bawah
+        elif arah < 0 and idx <= 0 and sebelumnya == idx:
+            self._geser_fokus(tv, -1)      # sudah di baris pertama -> keluar ke atas
+        self._tree_nav_pos[str(tv)] = idx
+
     def cetak_nota_thermal_80mm_custom(self, no_trx, metode, bayar, kembali, catatan_member, waktu_str=None, items_source=None, is_reprint=False):
         items_to_print = items_source if items_source is not None else self.cart
         grand_total = sum(item['total'] for item in items_to_print)
@@ -1675,8 +2092,15 @@ class KasirApp:
             struk.append(f"Member  : {catatan_member}".ljust(lebar))
         struk.append(line_sep)
         for item in items_to_print:
-            judul = item['judul'][:lebar]
-            struk.append(judul)
+            # FITUR: tampilkan kode produk (barcode) sebelum nama produk
+            barcode_str = str(item.get('barcode', '') or '').strip()
+            if barcode_str.lower() in ('nan', 'none'):
+                barcode_str = ''
+            if barcode_str.endswith('.0') and barcode_str[:-2].isdigit():
+                barcode_str = barcode_str[:-2]
+            judul = str(item.get('judul', ''))
+            baris_produk = f"{barcode_str} {judul}".strip() if barcode_str else judul
+            struk.append(baris_produk[:lebar])
             qty_price = f"  {item['jumlah']} x @{item['harga_akhir']:,.0f}"
             subtotal = f"Rp. {item['total']:,.0f}"
             p_lebar_sub = len(qty_price)
