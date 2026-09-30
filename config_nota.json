@@ -1,0 +1,14 @@
+{
+    "nama_toko": "KANISIUS TAKOM",
+    "sub_nama": "SANTO ANTONIUS PURBAYAN",
+    "alamat_toko": "Jl. Arifin no 1, Surakarta",
+    "telepon_toko": "0823-3764-1713",
+    "nama_kasir": "Admin",
+    "info_tambahan": "Terima Kasih Atas Kunjungan Anda",
+    "pesan_penutup": "Produk yang sudah dibeli tidak dapat ditukar/dikembalikan.",
+    "lebar_kertas": 48,
+    "ukuran_font": 8,
+    "tampilkan_logo_teks": true,
+    "tampilkan_footer": true,
+    "tampilkan_telp": true
+}
