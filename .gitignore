@@ -1,45 +1,24 @@
-# ============================================
-# FILE SENSITIF & KREDENSIAL (JANGAN DI-COMMIT)
-# ============================================
+# KREDENSIAL & FILE SENSITIF
 .env
 .env.local
-*.key
-*.pem
 
-# ============================================
 # FILE BUILD & EXECUTABLE
-# ============================================
 *.exe
 *.spec
 build/
 dist/
-*.pyc
-__pycache__/
-*.pyo
 
-# ============================================
-# CACHE & FILE LOKAL
-# ============================================
+# CACHE & PYTHON
+__pycache__/
+*.pyc
+*.pyo
 master_cache.parquet
-version.local
+
+# FILE LOKAL
 config_nota.json
+version.local
 *.log
 
-# ============================================
-# IDE & OS FILES
-# ============================================
+# IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# ============================================
-# VIRTUAL ENVIRONMENT
-# ============================================
-venv/
-env/
-ENV/
