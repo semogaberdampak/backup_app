@@ -5,44 +5,49 @@ import urllib.request
 import subprocess
 import tkinter as tk
 from tkinter import messagebox
+from typing import Optional
 
 # Konfigurasi URL mentah (raw URL) dari file version.json di GitHub Anda
-VERSION_URL = "https://raw.githubusercontent.com/USERNAME_ANDA/REPO_ANDA/main/version.json"
-LOCAL_VERSION_FILE = "version.local"
-MAIN_APP_FILE = "app_scan.py"
+VERSION_URL: str = "https://raw.githubusercontent.com/USERNAME_ANDA/REPO_ANDA/main/version.json"
+LOCAL_VERSION_FILE: str = "version.local"
+MAIN_APP_FILE: str = "app_scan.py"
 
 
-def get_local_version():
+def get_local_version() -> str:
     if os.path.exists(LOCAL_VERSION_FILE):
         with open(LOCAL_VERSION_FILE, "r") as f:
             return f.read().strip()
     return "v0.0.0"
 
 
-def save_local_version(ver):
+def save_local_version(ver: str) -> None:
     with open(LOCAL_VERSION_FILE, "w") as f:
         f.write(ver)
 
 
-def check_and_update():
+def check_and_update() -> None:
     root = tk.Tk()
     root.withdraw()  # Sembunyikan window utama launcher sementara mengecek
 
-    local_ver = get_local_version()
+    local_ver: str = get_local_version()
     print(f"Versi lokal saat ini: {local_ver}")
 
     try:
         # Ambil data versi terbaru dari GitHub
         req = urllib.request.urlopen(VERSION_URL, timeout=5)
-        data = json.loads(req.read().decode("utf-8"))
+        data: dict = json.loads(req.read().decode("utf-8"))
 
-        remote_ver = data.get("version")
-        download_url = data.get("download_url")
-        changelog = data.get("changelog", "Pembaruan sistem.")
+        remote_ver: Optional[str] = data.get("version")
+        download_url: Optional[str] = data.get("download_url")
+        changelog: str = data.get("changelog", "Pembaruan sistem.")
 
-        if remote_ver != local_ver:
+        # Validate required fields
+        if remote_ver is None or download_url is None:
+            print("❌ Data versi dari server tidak lengkap (version/download_url kosong)")
+            print("Aplikasi sudah menggunakan versi paling mutakhir.")
+        elif remote_ver != local_ver:
             # Jika versi berbeda/baru, beritahu user dan download patch otomatis
-            tanya = messagebox.askyesno(
+            tanya: bool = messagebox.askyesno(
                 "Pembaruan Tersedia (Modular Patch)",
                 f"Ditemukan versi baru: {remote_ver}\nVersi Anda saat ini: {local_ver}\n\nChangelog:\n{changelog}\n\nDownload patch modular sekarang?",  # noqa: E501
             )

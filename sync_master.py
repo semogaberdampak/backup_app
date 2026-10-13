@@ -1,7 +1,9 @@
 import pandas as pd
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 import os
 from dotenv import load_dotenv
+from typing import Optional, Tuple
 
 # Load environment variables
 load_dotenv()
@@ -12,15 +14,15 @@ load_dotenv()
 # Prioritas 1: DATABASE_URL lengkap (recommended untuk Supabase pooler)
 # Prioritas 2: Komponen terpisah (DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS)
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL: Optional[str] = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
     # Build dari komponen terpisah
-    DB_HOST = os.getenv("DB_HOST", "db.ibhkaoacvxonfhfxjyzr.supabase.co")
-    DB_PORT = os.getenv("DB_PORT", "5432")
-    DB_NAME = os.getenv("DB_NAME", "postgres")
-    DB_USER = os.getenv("DB_USER", "postgres")
-    DB_PASS = os.getenv("DB_PASS", "")
+    DB_HOST: str = os.getenv("DB_HOST", "db.ibhkaoacvxonfhfxjyzr.supabase.co")
+    DB_PORT: str = os.getenv("DB_PORT", "5432")
+    DB_NAME: str = os.getenv("DB_NAME", "postgres")
+    DB_USER: str = os.getenv("DB_USER", "postgres")
+    DB_PASS: str = os.getenv("DB_PASS", "")
 
     if DB_PASS:
         DATABASE_URL = (
@@ -30,7 +32,7 @@ if not DATABASE_URL:
         DATABASE_URL = None
         print("⚠️ PERINGATAN: DB_PASS tidak diset. Koneksi database akan gagal.")
 
-CACHE_FILE = "master_cache.parquet"  # Format penyimpanan lokal yang sangat cepat & ringan
+CACHE_FILE: str = "master_cache.parquet"  # Format penyimpanan lokal yang sangat cepat & ringan
 
 if DATABASE_URL:
     print(f"✅ Database URL dikonfigurasi: {DB_HOST}:{DB_PORT}/{DB_NAME}")
@@ -39,11 +41,11 @@ else:
 
 
 class MasterDataSync:
-    def __init__(self):
-        self.is_online = False
-        self.df_master = None
+    def __init__(self) -> None:
+        self.is_online: bool = False
+        self.df_master: Optional[pd.DataFrame] = None
 
-    def load_data(self):
+    def load_data(self) -> Tuple[pd.DataFrame, bool]:
         """
         Mencoba mengambil data dari Supabase Cloud.
         Jika gagal (offline), otomatis memakai data dari local cache.
@@ -62,8 +64,8 @@ class MasterDataSync:
 
         try:
             # 1. Coba Koneksi ke Database Online
-            engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 5})
-            query = "SELECT barcode, judul, harga FROM master_produk"
+            engine: Engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 5})
+            query: str = "SELECT barcode, judul, harga FROM master_produk"
 
             # Fetch data dari cloud ke DataFrame Pandas
             self.df_master = pd.read_sql(query, engine)

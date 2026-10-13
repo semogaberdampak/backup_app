@@ -13,19 +13,21 @@ import logging
 import subprocess
 import pathlib
 import copy
+from typing import Optional, Tuple, List, Dict, Any
 
 load_dotenv()
 
 # ==========================================================
 # 1. KONFIGURASI SUPABASE
 # ==========================================================
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-SUPABASE_TABLE = os.getenv("SUPABASE_TABLE", "master_produk")
+SUPABASE_URL: Optional[str] = os.getenv("SUPABASE_URL")
+SUPABASE_KEY: Optional[str] = os.getenv("SUPABASE_KEY")
+SUPABASE_TABLE: str = os.getenv("SUPABASE_TABLE", "master_produk")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("❌ ERROR: SUPABASE_URL dan SUPABASE_KEY harus diatur di file .env")
 
+SUPABASE_AVAILABLE: bool = False
 try:
     from supabase import create_client, Client
 
@@ -43,19 +45,19 @@ try:
 except ImportError:
     print("PERINGATAN: 'sync_master.py' tidak ditemukan. Menggunakan mode Offline/Dummy.")
 
-    class MasterDataSync:
-        def load_data(self):
+    class MasterDataSync:  # type: ignore[no-redef]
+        def load_data(self) -> Tuple[pd.DataFrame, bool]:
             return pd.DataFrame(columns=["barcode", "judul", "harga"]), False
 
 
 # ============================================================================
 # 3. Setup Logging
 # ============================================================================
-def setup_app_logging():
+def setup_app_logging() -> None:
     try:
-        log_dir = pathlib.Path.home() / ".takom_kasir"
+        log_dir: pathlib.Path = pathlib.Path.home() / ".takom_kasir"
         log_dir.mkdir(exist_ok=True)
-        log_file = log_dir / "app_error.log"
+        log_file: pathlib.Path = log_dir / "app_error.log"
         logging.basicConfig(
             filename=str(log_file),
             level=logging.ERROR,
@@ -72,26 +74,29 @@ def setup_app_logging():
 
 
 class KasirApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Takom Kasir v1.8.0 - Tampilan UI baru, Nota Editor Adjustable")
+    def __init__(self, root: tk.Tk) -> None:
+        self.root: tk.Tk = root
+        self.root.title("Takom Kasir v1.9.0 - Type Hints & Static Analysis Ready")
         self.root.state("zoomed")
         try:
             self.root.iconbitmap("logo.ico")
         except Exception:
             pass
 
-        self.sync_tool = MasterDataSync()
-        self.df_master = pd.DataFrame()
-        self.is_online = False
-        self.is_loading = True
+        self.sync_tool: MasterDataSync = MasterDataSync()
+        self.df_master: pd.DataFrame = pd.DataFrame()
+        self.is_online: bool = False
+        self.is_loading: bool = True
 
         # --- Supabase Client ---
-        self.is_supabase_ready = False
-        self.supabase = None
-        if SUPABASE_AVAILABLE and "your-project-id" not in SUPABASE_URL:
+        self.is_supabase_ready: bool = False
+        self.supabase: Optional[Client] = None
+        if SUPABASE_AVAILABLE and "your-project-id" not in (SUPABASE_URL or ""):
             try:
-                self.supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+                # Type assertion since we checked SUPABASE_AVAILABLE and URL/KEY are not None
+                assert SUPABASE_URL is not None
+                assert SUPABASE_KEY is not None
+                self.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
                 self.is_supabase_ready = True
                 print("✅ Supabase Client berhasil diinisialisasi")
             except Exception as e:
@@ -107,16 +112,16 @@ class KasirApp:
         self.cached_sheet_name = None
 
         # NOMAN
-        self.noman_data = {}
-        self.noman_item_map = {}
-        self.noman_entry_widget = None
+        self.noman_data: Dict[str, Any] = {}
+        self.noman_item_map: Dict[str, Any] = {}
+        self.noman_entry_widget: Optional[Any] = None
 
         # Pagination Data Master
-        self.dm_items_per_page = 20
-        self.dm_current_page = 1
-        self.dm_total_pages = 1
-        self.dm_total_records = 0
-        self.dm_footer_buttons = []
+        self.dm_items_per_page: int = 20
+        self.dm_current_page: int = 1
+        self.dm_total_pages: int = 1
+        self.dm_total_records: int = 0
+        self.dm_footer_buttons: List[Any] = []
 
         # ============================================================
         # TEMPLATE NOTA KUSTOM
@@ -185,8 +190,8 @@ class KasirApp:
         self.load_config_nota_json()
 
         # Keranjang
-        self.cart = []
-        self.no_trx_counter = 1
+        self.cart: List[Dict[str, Any]] = []
+        self.no_trx_counter: int = 1
 
         self.setup_custom_styles()
         self.setup_main_layout()
