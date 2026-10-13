@@ -1,0 +1,3 @@
+[console_scripts]
+takom-kasir = app_scan:main
+takom-sync = sync_master:main

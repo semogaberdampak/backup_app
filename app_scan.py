@@ -28,6 +28,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 try:
     from supabase import create_client, Client
+
     SUPABASE_AVAILABLE = True
     print("✅ Library Supabase berhasil diimport")
 except ImportError:
@@ -41,9 +42,11 @@ try:
     from sync_master import MasterDataSync
 except ImportError:
     print("PERINGATAN: 'sync_master.py' tidak ditemukan. Menggunakan mode Offline/Dummy.")
+
     class MasterDataSync:
         def load_data(self):
-            return pd.DataFrame(columns=['barcode', 'judul', 'harga']), False
+            return pd.DataFrame(columns=["barcode", "judul", "harga"]), False
+
 
 # ============================================================================
 # 3. Setup Logging
@@ -56,15 +59,15 @@ def setup_app_logging():
         logging.basicConfig(
             filename=str(log_file),
             level=logging.ERROR,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            encoding='utf-8'
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            encoding="utf-8",
         )
     except Exception:
         logging.basicConfig(
-            filename='app_error.log',
+            filename="app_error.log",
             level=logging.ERROR,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            encoding='utf-8'
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            encoding="utf-8",
         )
 
 
@@ -72,7 +75,7 @@ class KasirApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Takom Kasir v1.8.0 - Tampilan UI baru, Nota Editor Adjustable")
-        self.root.state('zoomed')
+        self.root.state("zoomed")
         try:
             self.root.iconbitmap("logo.ico")
         except Exception:
@@ -122,9 +125,24 @@ class KasirApp:
             "rows": [
                 {"type": "empty", "content": "", "align": "center"},
                 {"type": "text", "content": "TAKOM KANISIUS", "align": "center", "bold": True},
-                {"type": "text", "content": "SANTO ANTONIUS PURBAYAN", "align": "center", "bold": False},
-                {"type": "text", "content": "Jl. Arifin No 1 Surakarta", "align": "center", "bold": False},
-                {"type": "text", "content": "Telp: 0823-3764-1713", "align": "center", "bold": False},
+                {
+                    "type": "text",
+                    "content": "SANTO ANTONIUS PURBAYAN",
+                    "align": "center",
+                    "bold": False,
+                },
+                {
+                    "type": "text",
+                    "content": "Jl. Arifin No 1 Surakarta",
+                    "align": "center",
+                    "bold": False,
+                },
+                {
+                    "type": "text",
+                    "content": "Telp: 0823-3764-1713",
+                    "align": "center",
+                    "bold": False,
+                },
                 {"type": "line", "content": "-", "align": "full"},
                 {"type": "header_trx", "content": "", "align": "left"},
                 {"type": "line", "content": "-", "align": "full"},
@@ -133,8 +151,18 @@ class KasirApp:
                 {"type": "total", "content": "", "align": "right"},
                 {"type": "payment", "content": "", "align": "right"},
                 {"type": "line", "content": "-", "align": "full"},
-                {"type": "text", "content": "Terima Kasih Atas Kunjungan Anda", "align": "center", "bold": False},
-                {"type": "text", "content": "Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.", "align": "center", "bold": False},
+                {
+                    "type": "text",
+                    "content": "Terima Kasih Atas Kunjungan Anda",
+                    "align": "center",
+                    "bold": False,
+                },
+                {
+                    "type": "text",
+                    "content": "Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.",
+                    "align": "center",
+                    "bold": False,
+                },
             ]
         }
         self.load_template_nota()
@@ -152,7 +180,7 @@ class KasirApp:
             "ukuran_font": 10,
             "tampilkan_logo_teks": True,
             "tampilkan_footer": True,
-            "tampilkan_telp": True
+            "tampilkan_telp": True,
         }
         self.load_config_nota_json()
 
@@ -252,7 +280,7 @@ class KasirApp:
     # =========================================================================
     def setup_custom_styles(self):
         style = ttk.Style()
-        style.theme_use('clam')
+        style.theme_use("clam")
 
         # === BACKGROUND GLOBAL ===
         style.configure(".", background="#f5f6fa", fieldbackground="#ffffff")
@@ -262,37 +290,52 @@ class KasirApp:
         style.configure("TLabel", background="#f5f6fa", foreground="#2c3e50")
 
         # === TOMBOL TTK - TEKS HITAM JELAS (FIX BUG TIDAK TERBACA) ===
-        style.configure("TButton",
-                        font=("Segoe UI", 10, "bold"),
-                        foreground="#1a1a2e",
-                        background="#ffffff",
-                        padding=8)
-        style.map("TButton",
-                  background=[('active', '#e0e0e0'), ('pressed', '#d0d0d0')],
-                  foreground=[('active', '#1a1a2e'), ('pressed', '#1a1a2e')])
+        style.configure(
+            "TButton",
+            font=("Segoe UI", 10, "bold"),
+            foreground="#1a1a2e",
+            background="#ffffff",
+            padding=8,
+        )
+        style.map(
+            "TButton",
+            background=[("active", "#e0e0e0"), ("pressed", "#d0d0d0")],
+            foreground=[("active", "#1a1a2e"), ("pressed", "#1a1a2e")],
+        )
 
         # === TABEL UNIFIED ===
-        for tbl_name in ["Unified.Treeview", "DataMaster.Treeview", "DarkReport.Treeview", "Template.Treeview"]:
-            style.configure(tbl_name,
-                            background="#ffffff",
-                            foreground="#2c3e50",
-                            fieldbackground="#ffffff",
-                            rowheight=28,
-                            font=("Segoe UI", 10))
-            style.configure(f"{tbl_name}.Heading",
-                            background="#2c3e50",
-                            foreground="#ffffff",
-                            font=("Segoe UI", 10, "bold"),
-                            relief="flat")
-            style.map(tbl_name,
-                      background=[('selected', '#3498db')],
-                      foreground=[('selected', '#ffffff')])
+        for tbl_name in [
+            "Unified.Treeview",
+            "DataMaster.Treeview",
+            "DarkReport.Treeview",
+            "Template.Treeview",
+        ]:
+            style.configure(
+                tbl_name,
+                background="#ffffff",
+                foreground="#2c3e50",
+                fieldbackground="#ffffff",
+                rowheight=28,
+                font=("Segoe UI", 10),
+            )
+            style.configure(
+                f"{tbl_name}.Heading",
+                background="#2c3e50",
+                foreground="#ffffff",
+                font=("Segoe UI", 10, "bold"),
+                relief="flat",
+            )
+            style.map(
+                tbl_name, background=[("selected", "#3498db")], foreground=[("selected", "#ffffff")]
+            )
 
         # === COMBOBOX ===
         style.configure("TCombobox", font=("Segoe UI", 10))
-        style.map("TCombobox",
-                  fieldbackground=[('readonly', '#ffffff')],
-                  selectbackground=[('readonly', '#3498db')])
+        style.map(
+            "TCombobox",
+            fieldbackground=[("readonly", "#ffffff")],
+            selectbackground=[("readonly", "#3498db")],
+        )
 
         # === ENTRY ===
         style.configure("TEntry", font=("Segoe UI", 10))
@@ -316,25 +359,75 @@ class KasirApp:
         y = root_y + (root_h // 2) - (height // 2)
         x = max(10, min(x, screen_w - width - 10))
         y = max(10, min(y, screen_h - height - 10))
-        popup.geometry(f'{width}x{height}+{x}+{y}')
+        popup.geometry(f"{width}x{height}+{x}+{y}")
 
     def create_rounded_button(self, parent, text, command, bg_color, fg_color):
-        canvas = tk.Canvas(parent, width=175, height=38, bg="#1e2a38", highlightthickness=0, cursor="hand2")
+        canvas = tk.Canvas(
+            parent, width=175, height=38, bg="#1e2a38", highlightthickness=0, cursor="hand2"
+        )
 
         def draw_button(color, text_color, border_color=None):
             canvas.delete("all")
             x1, y1, x2, y2, r = 2, 2, 173, 36, 10
             if border_color:
-                canvas.create_arc(x1-1, y1-1, x1 + 2*r+1, y1 + 2*r+1, start=90, extent=90, fill=border_color, outline=border_color)
-                canvas.create_arc(x2 - 2*r-1, y1-1, x2+1, y1 + 2*r+1, start=0, extent=90, fill=border_color, outline=border_color)
-                canvas.create_arc(x1-1, y2 - 2*r-1, x1 + 2*r+1, y2+1, start=180, extent=90, fill=border_color, outline=border_color)
-                canvas.create_arc(x2 - 2*r-1, y2 - 2*r-1, x2+1, y2+1, start=270, extent=90, fill=border_color, outline=border_color)
-                canvas.create_rectangle(x1 + r, y1-1, x2 - r, y2+1, fill=border_color, outline=border_color)
-                canvas.create_rectangle(x1-1, y1 + r, x2+1, y2 - r, fill=border_color, outline=border_color)
-            canvas.create_arc(x1, y1, x1 + 2*r, y1 + 2*r, start=90, extent=90, fill=color, outline=color)
-            canvas.create_arc(x2 - 2*r, y1, x2, y1 + 2*r, start=0, extent=90, fill=color, outline=color)
-            canvas.create_arc(x1, y2 - 2*r, x1 + 2*r, y2, start=180, extent=90, fill=color, outline=color)
-            canvas.create_arc(x2 - 2*r, y2 - 2*r, x2, y2, start=270, extent=90, fill=color, outline=color)
+                canvas.create_arc(
+                    x1 - 1,
+                    y1 - 1,
+                    x1 + 2 * r + 1,
+                    y1 + 2 * r + 1,
+                    start=90,
+                    extent=90,
+                    fill=border_color,
+                    outline=border_color,
+                )
+                canvas.create_arc(
+                    x2 - 2 * r - 1,
+                    y1 - 1,
+                    x2 + 1,
+                    y1 + 2 * r + 1,
+                    start=0,
+                    extent=90,
+                    fill=border_color,
+                    outline=border_color,
+                )
+                canvas.create_arc(
+                    x1 - 1,
+                    y2 - 2 * r - 1,
+                    x1 + 2 * r + 1,
+                    y2 + 1,
+                    start=180,
+                    extent=90,
+                    fill=border_color,
+                    outline=border_color,
+                )
+                canvas.create_arc(
+                    x2 - 2 * r - 1,
+                    y2 - 2 * r - 1,
+                    x2 + 1,
+                    y2 + 1,
+                    start=270,
+                    extent=90,
+                    fill=border_color,
+                    outline=border_color,
+                )
+                canvas.create_rectangle(
+                    x1 + r, y1 - 1, x2 - r, y2 + 1, fill=border_color, outline=border_color
+                )
+                canvas.create_rectangle(
+                    x1 - 1, y1 + r, x2 + 1, y2 - r, fill=border_color, outline=border_color
+                )
+            canvas.create_arc(
+                x1, y1, x1 + 2 * r, y1 + 2 * r, start=90, extent=90, fill=color, outline=color
+            )
+            canvas.create_arc(
+                x2 - 2 * r, y1, x2, y1 + 2 * r, start=0, extent=90, fill=color, outline=color
+            )
+            canvas.create_arc(
+                x1, y2 - 2 * r, x1 + 2 * r, y2, start=180, extent=90, fill=color, outline=color
+            )
+            canvas.create_arc(
+                x2 - 2 * r, y2 - 2 * r, x2, y2, start=270, extent=90, fill=color, outline=color
+            )
             canvas.create_rectangle(x1 + r, y1, x2 - r, y2, fill=color, outline=color)
             canvas.create_rectangle(x1, y1 + r, x2, y2 - r, fill=color, outline=color)
             canvas.create_text(87, 19, text=text, fill=text_color, font=("Segoe UI", 9, "bold"))
@@ -346,9 +439,15 @@ class KasirApp:
         canvas.bind("<Button-1>", lambda e: command())
         canvas.bind("<Return>", lambda e: command())
         canvas.bind("<space>", lambda e: command())
-        canvas.bind("<Enter>", lambda e: canvas.draw("#16a085" if bg_color == "#1abc9c" else "#3d566e", fg_color))
+        canvas.bind(
+            "<Enter>",
+            lambda e: canvas.draw("#16a085" if bg_color == "#1abc9c" else "#3d566e", fg_color),
+        )
         canvas.bind("<Leave>", lambda e: canvas.draw(bg_color, fg_color))
-        canvas.bind("<FocusIn>", lambda e: canvas.draw("#16a085" if bg_color == "#1abc9c" else "#3d566e", fg_color))
+        canvas.bind(
+            "<FocusIn>",
+            lambda e: canvas.draw("#16a085" if bg_color == "#1abc9c" else "#3d566e", fg_color),
+        )
         canvas.bind("<FocusOut>", lambda e: canvas.draw(bg_color, fg_color))
         return canvas
 
@@ -359,20 +458,29 @@ class KasirApp:
 
         # === TOMBOL TAB UTAMA ===
         self.btn_transaksi = self.create_rounded_button(
-            self.toolbar_frame, "🛒 Transaksi Kasir",
-            lambda: self.switch_tab("transaksi"), "#1abc9c", "white"
+            self.toolbar_frame,
+            "🛒 Transaksi Kasir",
+            lambda: self.switch_tab("transaksi"),
+            "#1abc9c",
+            "white",
         )
         self.btn_transaksi.pack(side=tk.LEFT, padx=8, pady=10)
 
         self.btn_data_master = self.create_rounded_button(
-            self.toolbar_frame, "📋 Data Master",
-            lambda: self.switch_tab("data_master"), "#2c3e50", "white"
+            self.toolbar_frame,
+            "📋 Data Master",
+            lambda: self.switch_tab("data_master"),
+            "#2c3e50",
+            "white",
         )
         self.btn_data_master.pack(side=tk.LEFT, padx=4, pady=10)
 
         self.btn_laporan = self.create_rounded_button(
-            self.toolbar_frame, "📊 Laporan & Sheet",
-            lambda: self.switch_tab("laporan"), "#2c3e50", "white"
+            self.toolbar_frame,
+            "📊 Laporan & Sheet",
+            lambda: self.switch_tab("laporan"),
+            "#2c3e50",
+            "white",
         )
         self.btn_laporan.pack(side=tk.LEFT, padx=4, pady=10)
 
@@ -382,20 +490,25 @@ class KasirApp:
 
         # === TOMBOL AKSI ===
         self.btn_tambah_produk = self.create_rounded_button(
-            self.toolbar_frame, "➕ Tambah Produk (F2)",
-            self.buka_popup_tambah_produk, "#34495e", "white"
+            self.toolbar_frame,
+            "➕ Tambah Produk (F2)",
+            self.buka_popup_tambah_produk,
+            "#34495e",
+            "white",
         )
         self.btn_tambah_produk.pack(side=tk.RIGHT, padx=4, pady=10)
 
         self.btn_ubah_harga = self.create_rounded_button(
-            self.toolbar_frame, "✏️ Ubah Harga",
-            self.buka_popup_ubah_harga, "#34495e", "white"
+            self.toolbar_frame, "✏️ Ubah Harga", self.buka_popup_ubah_harga, "#34495e", "white"
         )
         self.btn_ubah_harga.pack(side=tk.RIGHT, padx=4, pady=10)
 
         self.btn_editor_template = self.create_rounded_button(
-            self.toolbar_frame, "🎨 Editor Nota",
-            self.buka_popup_editor_template_nota, "#34495e", "white"
+            self.toolbar_frame,
+            "🎨 Editor Nota",
+            self.buka_popup_editor_template_nota,
+            "#34495e",
+            "white",
         )
         self.btn_editor_template.pack(side=tk.RIGHT, padx=4, pady=10)
 
@@ -443,31 +556,44 @@ class KasirApp:
         top_frame = tk.Frame(parent, bg="#f5f6fa")
         top_frame.pack(fill="x", padx=10, pady=(10, 5))
 
-        ttk.Label(top_frame, text="📋 Database Master Produk",
-                  font=("Segoe UI", 13, "bold"), foreground="#2c3e50").pack(side="left", padx=5)
+        ttk.Label(
+            top_frame,
+            text="📋 Database Master Produk",
+            font=("Segoe UI", 13, "bold"),
+            foreground="#2c3e50",
+        ).pack(side="left", padx=5)
 
-        self.dm_lbl_info = ttk.Label(top_frame, text="Memuat data...",
-                                     font=("Segoe UI", 9, "italic"), foreground="gray")
+        self.dm_lbl_info = ttk.Label(
+            top_frame, text="Memuat data...", font=("Segoe UI", 9, "italic"), foreground="gray"
+        )
         self.dm_lbl_info.pack(side="right", padx=10)
 
         filter_frame = tk.Frame(parent, bg="#f5f6fa")
         filter_frame.pack(fill="x", padx=10, pady=(0, 5))
 
-        ttk.Label(filter_frame, text=" Filter:", font=("Segoe UI", 9, "bold")).pack(side="left", padx=5)
+        ttk.Label(filter_frame, text=" Filter:", font=("Segoe UI", 9, "bold")).pack(
+            side="left", padx=5
+        )
         self.dm_ent_filter = ttk.Entry(filter_frame, font=("Segoe UI", 10), width=35)
         self.dm_ent_filter.pack(side="left", padx=5)
         self.dm_ent_filter.bind("<KeyRelease>", lambda e: self.dm_apply_filter())
 
-        btn_refresh_dm = ttk.Button(filter_frame, text="🔄 Refresh dari Cloud",
-                                    command=self.dm_force_refresh_cloud)
+        btn_refresh_dm = ttk.Button(
+            filter_frame, text="🔄 Refresh dari Cloud", command=self.dm_force_refresh_cloud
+        )
         btn_refresh_dm.pack(side="right", padx=5)
 
         table_frame = ttk.Frame(parent)
         table_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
         dm_columns = ("no", "barcode", "judul", "harga")
-        self.dm_tree = ttk.Treeview(table_frame, columns=dm_columns, show="headings",
-                                    selectmode="browse", style="Unified.Treeview")
+        self.dm_tree = ttk.Treeview(
+            table_frame,
+            columns=dm_columns,
+            show="headings",
+            selectmode="browse",
+            style="Unified.Treeview",
+        )
 
         self.dm_tree.heading("no", text="No.")
         self.dm_tree.heading("barcode", text="Barcode")
@@ -490,10 +616,13 @@ class KasirApp:
         self.dm_footer_frame.pack(side="bottom", fill="x", padx=0, pady=0)
         self.dm_footer_frame.pack_propagate(False)
 
-        self.dm_lbl_page_info = tk.Label(self.dm_footer_frame,
-                                         text="Halaman 1 / 1  |  Total: 0 produk",
-                                         font=("Segoe UI", 9, "bold"),
-                                         bg="#2c3e50", fg="#ecf0f1")
+        self.dm_lbl_page_info = tk.Label(
+            self.dm_footer_frame,
+            text="Halaman 1 / 1  |  Total: 0 produk",
+            font=("Segoe UI", 9, "bold"),
+            bg="#2c3e50",
+            fg="#ecf0f1",
+        )
         self.dm_lbl_page_info.pack(side="left", padx=15, pady=8)
 
         self.dm_btn_container = tk.Frame(self.dm_footer_frame, bg="#2c3e50")
@@ -504,24 +633,35 @@ class KasirApp:
             self.dm_total_records = 0
             self.dm_total_pages = 1
             self.dm_current_page = 1
-            self.dm_lbl_info.config(text="⚠️ Belum ada data. Tunggu sync selesai...",
-                                    foreground="orange")
+            self.dm_lbl_info.config(
+                text="⚠️ Belum ada data. Tunggu sync selesai...", foreground="orange"
+            )
             for item in self.dm_tree.get_children():
                 self.dm_tree.delete(item)
             self.dm_render_footer()
             return
 
-        filter_text = self.dm_ent_filter.get().strip().lower() if hasattr(self, 'dm_ent_filter') else ""
+        filter_text = (
+            self.dm_ent_filter.get().strip().lower() if hasattr(self, "dm_ent_filter") else ""
+        )
         if filter_text:
             df_filtered = self.df_master[
-                self.df_master['barcode'].astype(str).str.lower().str.contains(filter_text, na=False) |
-                self.df_master['judul'].astype(str).str.lower().str.contains(filter_text, na=False)
+                self.df_master["barcode"]
+                .astype(str)
+                .str.lower()
+                .str.contains(filter_text, na=False)
+                | self.df_master["judul"]
+                .astype(str)
+                .str.lower()
+                .str.contains(filter_text, na=False)
             ]
         else:
             df_filtered = self.df_master
 
         self.dm_total_records = len(df_filtered)
-        self.dm_total_pages = max(1, (self.dm_total_records + self.dm_items_per_page - 1) // self.dm_items_per_page)
+        self.dm_total_pages = max(
+            1, (self.dm_total_records + self.dm_items_per_page - 1) // self.dm_items_per_page
+        )
 
         if self.dm_current_page > self.dm_total_pages:
             self.dm_current_page = self.dm_total_pages
@@ -531,8 +671,8 @@ class KasirApp:
 
         status = "🟢 ONLINE" if self.is_online else "🟡 OFFLINE"
         self.dm_lbl_info.config(
-            text=f"{status} | Menampilkan {self.dm_total_records:,} dari {len(self.df_master):,} produk",
-            foreground="green" if self.is_online else "orange"
+            text=f"{status} | Menampilkan {self.dm_total_records:,} dari {len(self.df_master):,} produk",  # noqa: E501
+            foreground="green" if self.is_online else "orange",
         )
 
     def dm_render_page(self, df_filtered=None):
@@ -542,11 +682,19 @@ class KasirApp:
         if df_filtered is None:
             if self.df_master is None or self.df_master.empty:
                 return
-            filter_text = self.dm_ent_filter.get().strip().lower() if hasattr(self, 'dm_ent_filter') else ""
+            filter_text = (
+                self.dm_ent_filter.get().strip().lower() if hasattr(self, "dm_ent_filter") else ""
+            )
             if filter_text:
                 df_filtered = self.df_master[
-                    self.df_master['barcode'].astype(str).str.lower().str.contains(filter_text, na=False) |
-                    self.df_master['judul'].astype(str).str.lower().str.contains(filter_text, na=False)
+                    self.df_master["barcode"]
+                    .astype(str)
+                    .str.lower()
+                    .str.contains(filter_text, na=False)
+                    | self.df_master["judul"]
+                    .astype(str)
+                    .str.lower()
+                    .str.contains(filter_text, na=False)
                 ]
             else:
                 df_filtered = self.df_master
@@ -560,12 +708,12 @@ class KasirApp:
 
         for i, (_, row) in enumerate(page_df.iterrows()):
             global_no = start_idx + i + 1
-            barcode_val = str(row.get('barcode', '')).strip()
-            if barcode_val.endswith('.0') and barcode_val[:-2].isdigit():
+            barcode_val = str(row.get("barcode", "")).strip()
+            if barcode_val.endswith(".0") and barcode_val[:-2].isdigit():
                 barcode_val = barcode_val[:-2]
-            judul_val = str(row.get('judul', '')).strip()
+            judul_val = str(row.get("judul", "")).strip()
             try:
-                harga_val = float(row.get('harga', 0))
+                harga_val = float(row.get("harga", 0))
                 harga_str = f"Rp {harga_val:,.0f}"
             except (ValueError, TypeError):
                 harga_str = "Rp 0"
@@ -582,8 +730,8 @@ class KasirApp:
 
         self.dm_lbl_page_info.config(
             text=f"Halaman {self.dm_current_page} / {self.dm_total_pages}  |  "
-                 f"Total: {self.dm_total_records:,} produk  |  "
-                 f"{self.dm_items_per_page} baris/halaman"
+            f"Total: {self.dm_total_records:,} produk  |  "
+            f"{self.dm_items_per_page} baris/halaman"
         )
 
         if self.dm_total_pages <= 1:
@@ -592,17 +740,28 @@ class KasirApp:
         def make_page_btn(parent, text, page_num, is_current=False):
             bg = "#1abc9c" if is_current else "#34495e"
             fg = "#ffffff"
-            btn = tk.Button(parent, text=text, font=("Segoe UI", 9, "bold"),
-                            bg=bg, fg=fg, activebackground="#16a085", activeforeground="white",
-                            relief="flat", padx=8, pady=2, cursor="hand2",
-                            command=lambda p=page_num: self.dm_go_to_page(p))
+            btn = tk.Button(
+                parent,
+                text=text,
+                font=("Segoe UI", 9, "bold"),
+                bg=bg,
+                fg=fg,
+                activebackground="#16a085",
+                activeforeground="white",
+                relief="flat",
+                padx=8,
+                pady=2,
+                cursor="hand2",
+                command=lambda p=page_num: self.dm_go_to_page(p),
+            )
             btn.pack(side="left", padx=2)
             self.dm_footer_buttons.append(btn)
             return btn
 
         def make_label(parent, text):
-            lbl = tk.Label(parent, text=text, font=("Segoe UI", 9, "bold"),
-                           bg="#2c3e50", fg="#95a5a6")
+            lbl = tk.Label(
+                parent, text=text, font=("Segoe UI", 9, "bold"), bg="#2c3e50", fg="#95a5a6"
+            )
             lbl.pack(side="left", padx=2)
             self.dm_footer_buttons.append(lbl)
 
@@ -656,8 +815,7 @@ class KasirApp:
         if self.is_loading:
             messagebox.showinfo("Info", "Proses loading masih berjalan. Mohon tunggu.")
             return
-        self.dm_lbl_info.config(text=" Sedang menyinkronkan ulang dari cloud...",
-                                foreground="blue")
+        self.dm_lbl_info.config(text=" Sedang menyinkronkan ulang dari cloud...", foreground="blue")
         self.root.update_idletasks()
         threading.Thread(target=self.load_master_data_async, daemon=True).start()
 
@@ -723,8 +881,13 @@ class KasirApp:
         tree_frame.pack(fill="both", expand=True, padx=5, pady=5)
 
         cols = ("no", "tipe", "content", "align")
-        tree_tpl = ttk.Treeview(tree_frame, columns=cols, show="headings",
-                                selectmode="browse", style="Template.Treeview")
+        tree_tpl = ttk.Treeview(
+            tree_frame,
+            columns=cols,
+            show="headings",
+            selectmode="browse",
+            style="Template.Treeview",
+        )
         tree_tpl.heading("no", text="No")
         tree_tpl.heading("tipe", text="Tipe Baris")
         tree_tpl.heading("content", text="Isi / Teks")
@@ -745,10 +908,14 @@ class KasirApp:
         row_type = ttk.Frame(panel_edit)
         row_type.pack(fill="x", padx=5, pady=3)
         ttk.Label(row_type, text="Tipe:", width=8).pack(side="left")
-        combo_type = ttk.Combobox(row_type, values=list(TIPE_BARIS.keys()), state="readonly", width=25)
+        combo_type = ttk.Combobox(
+            row_type, values=list(TIPE_BARIS.keys()), state="readonly", width=25
+        )
         combo_type.pack(side="left", padx=5)
         ttk.Label(row_type, text="Align:", width=6).pack(side="left", padx=(15, 0))
-        combo_align = ttk.Combobox(row_type, values=list(ALIGN_OPTIONS.keys()), state="readonly", width=20)
+        combo_align = ttk.Combobox(
+            row_type, values=list(ALIGN_OPTIONS.keys()), state="readonly", width=20
+        )
         combo_align.pack(side="left", padx=5)
         bold_var = tk.BooleanVar(value=False)
         chk_bold = ttk.Checkbutton(row_type, text="Bold", variable=bold_var)
@@ -764,9 +931,15 @@ class KasirApp:
         frame_preview = ttk.LabelFrame(main_split, text=" 👁️ Live Preview Nota ")
         frame_preview.pack(side="right", fill="both", expand=True, padx=5, pady=5)
 
-        txt_preview = tk.Text(frame_preview, width=48, height=35,
-                              font=("Courier New", 9), bg="#1e1e2e", fg="#ecf0f1",
-                              insertbackground="white")
+        txt_preview = tk.Text(
+            frame_preview,
+            width=48,
+            height=35,
+            font=("Courier New", 9),
+            bg="#1e1e2e",
+            fg="#ecf0f1",
+            insertbackground="white",
+        )
         txt_preview.pack(side="top", fill="both", expand=True, padx=5, pady=5)
 
         # =================================================================
@@ -778,10 +951,18 @@ class KasirApp:
             for idx, row in enumerate(working_template["rows"], 1):
                 tipe_display = TIPE_BARIS.get(row.get("type", "text"), row.get("type", "?"))
                 content_display = row.get("content", "")
-                if not content_display and row.get("type") in ("header_trx", "products", "total", "payment", "footer_text"):
+                if not content_display and row.get("type") in (
+                    "header_trx",
+                    "products",
+                    "total",
+                    "payment",
+                    "footer_text",
+                ):
                     content_display = f"[{tipe_display}]"
                 align_display = row.get("align", "center").upper()
-                tree_tpl.insert("", "end", values=(idx, tipe_display, content_display, align_display))
+                tree_tpl.insert(
+                    "", "end", values=(idx, tipe_display, content_display, align_display)
+                )
 
         def _tpl_get_selected_index():
             sel = tree_tpl.selection()
@@ -832,10 +1013,22 @@ class KasirApp:
             dummy_kasir = self.config_nota.get("nama_kasir", "Admin")
             dummy_waktu = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             dummy_items = [
-                {"barcode": "1123LB0001", "judul": "Rosario Kayu Wangi Eksklusif",
-                 "jumlah": 2, "harga_akhir": 25000, "total": 50000, "diskon": 0},
-                {"barcode": "1124LB0002", "judul": "Buku Doa Katolik Saku",
-                 "jumlah": 1, "harga_akhir": 15000, "total": 15000, "diskon": 0},
+                {
+                    "barcode": "1123LB0001",
+                    "judul": "Rosario Kayu Wangi Eksklusif",
+                    "jumlah": 2,
+                    "harga_akhir": 25000,
+                    "total": 50000,
+                    "diskon": 0,
+                },
+                {
+                    "barcode": "1124LB0002",
+                    "judul": "Buku Doa Katolik Saku",
+                    "jumlah": 1,
+                    "harga_akhir": 15000,
+                    "total": 15000,
+                    "diskon": 0,
+                },
             ]
             dummy_grand = 65000
             dummy_bayar = 70000
@@ -869,31 +1062,39 @@ class KasirApp:
                     char = content if content else "-"
                     preview_lines.append(_fmt(char, "full", lebar))
                 elif rtype == "header_trx":
-                    preview_lines.append(f"No. Trx  : #{dummy_no_trx}".ljust(lebar // 2) +
-                                         f"Kasir : {dummy_kasir}".rjust(lebar - (lebar // 2)))
+                    preview_lines.append(
+                        f"No. Trx  : #{dummy_no_trx}".ljust(lebar // 2)
+                        + f"Kasir : {dummy_kasir}".rjust(lebar - (lebar // 2))
+                    )
                     preview_lines.append(f"Waktu   : {dummy_waktu}".ljust(lebar))
                 elif rtype == "products":
                     for item in dummy_items:
-                        bc = str(item.get('barcode', '')).strip()
-                        if bc.endswith('.0') and bc[:-2].isdigit():
+                        bc = str(item.get("barcode", "")).strip()
+                        if bc.endswith(".0") and bc[:-2].isdigit():
                             bc = bc[:-2]
-                        judul = str(item.get('judul', ''))
+                        judul = str(item.get("judul", ""))
                         baris = f"{bc} {judul}".strip() if bc else judul
                         preview_lines.append(baris[:lebar])
                         qty_price = f"  {item['jumlah']} x @{item['harga_akhir']:,.0f}"
                         subtotal = f"Rp. {item['total']:,.0f}"
                         spasi = max(2, lebar - len(qty_price) - len(subtotal))
                         preview_lines.append(qty_price + (" " * spasi) + subtotal)
-                        if item.get('diskon', 0) > 0:
+                        if item.get("diskon", 0) > 0:
                             preview_lines.append(f"  (Diskon {item['diskon']}%)".ljust(lebar))
                 elif rtype == "total":
-                    preview_lines.append(f"TOTAL BELANJA".ljust(lebar // 2) +
-                                         f"Rp. {dummy_grand:,.0f}".rjust(lebar - (lebar // 2)))
+                    preview_lines.append(
+                        "TOTAL BELANJA".ljust(lebar // 2)
+                        + f"Rp. {dummy_grand:,.0f}".rjust(lebar - (lebar // 2))
+                    )
                 elif rtype == "payment":
-                    preview_lines.append(f"PEMBAYARAN ({dummy_metode})".ljust(lebar // 2) +
-                                         f"Rp. {dummy_bayar:,.0f}".rjust(lebar - (lebar // 2)))
-                    preview_lines.append(f"KEMBALIAN".ljust(lebar // 2) +
-                                         f"Rp. {dummy_kembali:,.0f}".rjust(lebar - (lebar // 2)))
+                    preview_lines.append(
+                        f"PEMBAYARAN ({dummy_metode})".ljust(lebar // 2)
+                        + f"Rp. {dummy_bayar:,.0f}".rjust(lebar - (lebar // 2))
+                    )
+                    preview_lines.append(
+                        "KEMBALIAN".ljust(lebar // 2)
+                        + f"Rp. {dummy_kembali:,.0f}".rjust(lebar - (lebar // 2))
+                    )
                 elif rtype == "footer_text":
                     footer1 = self.config_nota.get("info_tambahan", "")
                     footer2 = self.config_nota.get("pesan_penutup", "")
@@ -929,7 +1130,9 @@ class KasirApp:
         def on_hapus():
             idx = _tpl_get_selected_index()
             if idx is None:
-                messagebox.showinfo("Info", "Pilih baris yang ingin dihapus terlebih dahulu.", parent=popup)
+                messagebox.showinfo(
+                    "Info", "Pilih baris yang ingin dihapus terlebih dahulu.", parent=popup
+                )
                 return
             if messagebox.askyesno("Konfirmasi", f"Hapus baris ke-{idx + 1}?", parent=popup):
                 working_template["rows"].pop(idx)
@@ -946,8 +1149,10 @@ class KasirApp:
             idx = _tpl_get_selected_index()
             if idx is None or idx <= 0:
                 return
-            working_template["rows"][idx], working_template["rows"][idx - 1] = \
-                working_template["rows"][idx - 1], working_template["rows"][idx]
+            working_template["rows"][idx], working_template["rows"][idx - 1] = (
+                working_template["rows"][idx - 1],
+                working_template["rows"][idx],
+            )
             _tpl_refresh_tree()
             _tpl_update_preview()
             children = tree_tpl.get_children()
@@ -960,8 +1165,10 @@ class KasirApp:
             idx = _tpl_get_selected_index()
             if idx is None or idx >= len(working_template["rows"]) - 1:
                 return
-            working_template["rows"][idx], working_template["rows"][idx + 1] = \
-                working_template["rows"][idx + 1], working_template["rows"][idx]
+            working_template["rows"][idx], working_template["rows"][idx + 1] = (
+                working_template["rows"][idx + 1],
+                working_template["rows"][idx],
+            )
             _tpl_refresh_tree()
             _tpl_update_preview()
             children = tree_tpl.get_children()
@@ -986,15 +1193,37 @@ class KasirApp:
                 _tpl_on_select()
 
         def on_reset():
-            if messagebox.askyesno("Konfirmasi",
+            if messagebox.askyesno(
+                "Konfirmasi",
                 "Reset template ke default?\nSemua perubahan akan hilang.",
-                parent=popup):
+                parent=popup,
+            ):
                 working_template["rows"] = [
                     {"type": "empty", "content": "", "align": "center"},
-                    {"type": "text", "content": "TOKO KASIR TAKOM", "align": "center", "bold": True},
-                    {"type": "text", "content": "Pusat Grosir & Eceran Terlengkap", "align": "center", "bold": False},
-                    {"type": "text", "content": "Jl. Raya Toko No. 88, Kota Anda", "align": "center", "bold": False},
-                    {"type": "text", "content": "Telp: 0812-3456-7890", "align": "center", "bold": False},
+                    {
+                        "type": "text",
+                        "content": "TOKO KASIR TAKOM",
+                        "align": "center",
+                        "bold": True,
+                    },
+                    {
+                        "type": "text",
+                        "content": "Pusat Grosir & Eceran Terlengkap",
+                        "align": "center",
+                        "bold": False,
+                    },
+                    {
+                        "type": "text",
+                        "content": "Jl. Raya Toko No. 88, Kota Anda",
+                        "align": "center",
+                        "bold": False,
+                    },
+                    {
+                        "type": "text",
+                        "content": "Telp: 0812-3456-7890",
+                        "align": "center",
+                        "bold": False,
+                    },
                     {"type": "line", "content": "-", "align": "full"},
                     {"type": "header_trx", "content": "", "align": "left"},
                     {"type": "line", "content": "-", "align": "full"},
@@ -1003,8 +1232,18 @@ class KasirApp:
                     {"type": "total", "content": "", "align": "right"},
                     {"type": "payment", "content": "", "align": "right"},
                     {"type": "line", "content": "-", "align": "full"},
-                    {"type": "text", "content": "Terima Kasih Atas Kunjungan Anda", "align": "center", "bold": False},
-                    {"type": "text", "content": "Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.", "align": "center", "bold": False},
+                    {
+                        "type": "text",
+                        "content": "Terima Kasih Atas Kunjungan Anda",
+                        "align": "center",
+                        "bold": False,
+                    },
+                    {
+                        "type": "text",
+                        "content": "Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.",
+                        "align": "center",
+                        "bold": False,
+                    },
                 ]
                 _tpl_refresh_tree()
                 _tpl_update_preview()
@@ -1019,22 +1258,30 @@ class KasirApp:
             frm = ttk.Frame(mini, padding=10)
             frm.pack(fill="both", expand=True)
 
-            ttk.Label(frm, text="Lebar Kertas (kolom):", font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(5, 2))
+            ttk.Label(frm, text="Lebar Kertas (kolom):", font=("Segoe UI", 9, "bold")).pack(
+                anchor="w", pady=(5, 2)
+            )
             spin_lebar = ttk.Spinbox(frm, from_=32, to=80, width=10)
             spin_lebar.set(self.config_nota.get("lebar_kertas", 48))
             spin_lebar.pack(fill="x", pady=(0, 8))
 
-            ttk.Label(frm, text="Nama Kasir Default:", font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(5, 2))
+            ttk.Label(frm, text="Nama Kasir Default:", font=("Segoe UI", 9, "bold")).pack(
+                anchor="w", pady=(5, 2)
+            )
             ent_kasir = ttk.Entry(frm, width=40)
             ent_kasir.insert(0, self.config_nota.get("nama_kasir", "Admin"))
             ent_kasir.pack(fill="x", pady=(0, 8))
 
-            ttk.Label(frm, text="Footer Line 1 (Terima Kasih):", font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(5, 2))
+            ttk.Label(frm, text="Footer Line 1 (Terima Kasih):", font=("Segoe UI", 9, "bold")).pack(
+                anchor="w", pady=(5, 2)
+            )
             ent_f1 = ttk.Entry(frm, width=40)
             ent_f1.insert(0, self.config_nota.get("info_tambahan", ""))
             ent_f1.pack(fill="x", pady=(0, 8))
 
-            ttk.Label(frm, text="Footer Line 2 (Syarat & Ketentuan):", font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(5, 2))
+            ttk.Label(
+                frm, text="Footer Line 2 (Syarat & Ketentuan):", font=("Segoe UI", 9, "bold")
+            ).pack(anchor="w", pady=(5, 2))
             ent_f2 = ttk.Entry(frm, width=40)
             ent_f2.insert(0, self.config_nota.get("pesan_penutup", ""))
             ent_f2.pack(fill="x", pady=(0, 8))
@@ -1091,10 +1338,12 @@ class KasirApp:
         def simpan_template():
             self.template_nota = copy.deepcopy(working_template)
             if self.save_template_nota():
-                messagebox.showinfo("Sukses",
+                messagebox.showinfo(
+                    "Sukses",
                     "Template nota berhasil disimpan!\n"
                     "Perubahan akan diterapkan pada nota berikutnya.",
-                    parent=popup)
+                    parent=popup,
+                )
                 popup.destroy()
             else:
                 messagebox.showerror("Gagal", "Gagal menyimpan template nota.", parent=popup)
@@ -1104,29 +1353,49 @@ class KasirApp:
                 popup.destroy()
 
         # Gunakan tk.Button dengan warna eksplisit agar teks selalu terbaca
-        btn_batal = tk.Button(frame_aksi, text="❌ Batal", command=batal_template,
-                              font=("Segoe UI", 10, "bold"),
-                              bg="#e74c3c", fg="white",
-                              activebackground="#c0392b", activeforeground="white",
-                              relief="flat", padx=20, pady=6, cursor="hand2")
+        btn_batal = tk.Button(
+            frame_aksi,
+            text="❌ Batal",
+            command=batal_template,
+            font=("Segoe UI", 10, "bold"),
+            bg="#e74c3c",
+            fg="white",
+            activebackground="#c0392b",
+            activeforeground="white",
+            relief="flat",
+            padx=20,
+            pady=6,
+            cursor="hand2",
+        )
         btn_batal.pack(side="left", padx=5, pady=8)
 
-        btn_simpan = tk.Button(frame_aksi, text=" Simpan Template", command=simpan_template,
-                               font=("Segoe UI", 10, "bold"),
-                               bg="#27ae60", fg="white",
-                               activebackground="#1e8449", activeforeground="white",
-                               relief="flat", padx=20, pady=6, cursor="hand2")
+        btn_simpan = tk.Button(
+            frame_aksi,
+            text=" Simpan Template",
+            command=simpan_template,
+            font=("Segoe UI", 10, "bold"),
+            bg="#27ae60",
+            fg="white",
+            activebackground="#1e8449",
+            activeforeground="white",
+            relief="flat",
+            padx=20,
+            pady=6,
+            cursor="hand2",
+        )
         btn_simpan.pack(side="right", padx=5, pady=8)
 
     # =========================================================================
     # UBAH HARGA PRODUK (Partial Search)
     # =========================================================================
     def buka_popup_ubah_harga(self):
-        if not getattr(self, 'is_supabase_ready', False):
-            messagebox.showerror("Error Koneksi",
+        if not getattr(self, "is_supabase_ready", False):
+            messagebox.showerror(
+                "Error Koneksi",
                 "Klien Supabase belum terkonfigurasi atau library belum diinstal.\n"
                 "1. Pastikan 'pip install supabase' sudah dijalankan.\n"
-                "2. Isi SUPABASE_URL dan SUPABASE_KEY di bagian atas kode.")
+                "2. Isi SUPABASE_URL dan SUPABASE_KEY di bagian atas kode.",
+            )
             return
 
         popup = tk.Toplevel(self.root)
@@ -1140,16 +1409,25 @@ class KasirApp:
         frame_cari.pack(fill="x", padx=15, pady=10)
         row_cari = ttk.Frame(frame_cari)
         row_cari.pack(fill="x", padx=10, pady=8)
-        ttk.Label(row_cari, text="Ketik Barcode/Judul:", font=("Segoe UI", 9)).pack(side="left", padx=5)
+        ttk.Label(row_cari, text="Ketik Barcode/Judul:", font=("Segoe UI", 9)).pack(
+            side="left", padx=5
+        )
         ent_barcode = ttk.Entry(row_cari, width=22, font=("Segoe UI", 10, "bold"))
         ent_barcode.pack(side="left", padx=5)
         ent_barcode.focus_force()
 
         frame_info = ttk.LabelFrame(popup, text="2. Informasi Produk")
         frame_info.pack(fill="x", padx=15, pady=5)
-        lbl_nama = ttk.Label(frame_info, text="Nama Produk: -", font=("Segoe UI", 9), foreground="gray")
+        lbl_nama = ttk.Label(
+            frame_info, text="Nama Produk: -", font=("Segoe UI", 9), foreground="gray"
+        )
         lbl_nama.pack(anchor="w", padx=10, pady=(6, 2))
-        lbl_harga_lama = ttk.Label(frame_info, text="Harga Saat Ini: Rp. 0", font=("Segoe UI", 10, "bold"), foreground="blue")
+        lbl_harga_lama = ttk.Label(
+            frame_info,
+            text="Harga Saat Ini: Rp. 0",
+            font=("Segoe UI", 10, "bold"),
+            foreground="blue",
+        )
         lbl_harga_lama.pack(anchor="w", padx=10, pady=(2, 6))
 
         frame_baru = ttk.LabelFrame(popup, text="3. Harga Baru")
@@ -1168,31 +1446,42 @@ class KasirApp:
                 return
             keyword_lower = keyword.lower()
             match = self.df_master[
-                self.df_master['barcode'].astype(str).str.lower().str.contains(keyword_lower, na=False) |
-                self.df_master['judul'].astype(str).str.lower().str.contains(keyword_lower, na=False)
+                self.df_master["barcode"]
+                .astype(str)
+                .str.lower()
+                .str.contains(keyword_lower, na=False)
+                | self.df_master["judul"]
+                .astype(str)
+                .str.lower()
+                .str.contains(keyword_lower, na=False)
             ]
             if match.empty:
                 produk_ditemukan.clear()
                 lbl_nama.config(text="Nama Produk: ❌ Tidak Ditemukan", foreground="red")
                 lbl_harga_lama.config(text="Harga Saat Ini: Rp. 0", foreground="gray")
                 ent_harga_baru.delete(0, tk.END)
-                messagebox.showwarning("Tidak Ditemukan",
+                messagebox.showwarning(
+                    "Tidak Ditemukan",
                     f"Tidak ada produk dengan keyword '{keyword}' di database master.",
-                    parent=popup)
+                    parent=popup,
+                )
             elif len(match) == 1:
                 item = match.iloc[0]
-                produk_ditemukan['barcode'] = str(item['barcode'])
-                produk_ditemukan['judul'] = str(item['judul'])
-                produk_ditemukan['harga'] = float(item['harga'])
-                lbl_nama.config(text=f"Nama Produk: {produk_ditemukan['judul']}", foreground="black")
+                produk_ditemukan["barcode"] = str(item["barcode"])
+                produk_ditemukan["judul"] = str(item["judul"])
+                produk_ditemukan["harga"] = float(item["harga"])
+                lbl_nama.config(
+                    text=f"Nama Produk: {produk_ditemukan['judul']}", foreground="black"
+                )
                 lbl_harga_lama.config(text=f"Harga Saat Ini: Rp. {produk_ditemukan['harga']:,.0f}")
                 ent_harga_baru.delete(0, tk.END)
-                ent_harga_baru.insert(0, str(int(produk_ditemukan['harga'])))
+                ent_harga_baru.insert(0, str(int(produk_ditemukan["harga"])))
                 ent_harga_baru.focus_force()
                 ent_harga_baru.selection_range(0, tk.END)
             else:
-                self.buka_popup_pilihan_produk_ubah_harga(match, popup, produk_ditemukan,
-                                                          lbl_nama, lbl_harga_lama, ent_harga_baru)
+                self.buka_popup_pilihan_produk_ubah_harga(
+                    match, popup, produk_ditemukan, lbl_nama, lbl_harga_lama, ent_harga_baru
+                )
 
         btn_cari = ttk.Button(frame_cari, text=" Cari", command=cari_produk)
         btn_cari.pack(side="left", padx=10, pady=5)
@@ -1200,45 +1489,69 @@ class KasirApp:
 
         def simpan_ke_supabase():
             if not produk_ditemukan:
-                messagebox.showwarning("Peringatan", "Cari produk yang valid terlebih dahulu!", parent=popup)
+                messagebox.showwarning(
+                    "Peringatan", "Cari produk yang valid terlebih dahulu!", parent=popup
+                )
                 return
             try:
                 harga_baru = float(ent_harga_baru.get().replace(",", "").strip())
                 if harga_baru < 0:
                     raise ValueError("Harga tidak boleh negatif")
             except ValueError:
-                messagebox.showerror("Input Error", "Masukkan nominal harga yang valid (angka)!", parent=popup)
+                messagebox.showerror(
+                    "Input Error", "Masukkan nominal harga yang valid (angka)!", parent=popup
+                )
                 return
             popup.config(cursor="watch")
             popup.update()
             try:
-                debug_select = self.supabase.table(SUPABASE_TABLE).select("barcode, harga").eq("barcode", produk_ditemukan['barcode']).execute()
+                debug_select = (
+                    self.supabase.table(SUPABASE_TABLE)
+                    .select("barcode, harga")
+                    .eq("barcode", produk_ditemukan["barcode"])
+                    .execute()
+                )
                 if not debug_select.data:
-                    raise Exception(f"Tidak ditemukan data dengan barcode='{produk_ditemukan['barcode']}'.")
-                response = self.supabase.table(SUPABASE_TABLE).update({
-                    "harga": harga_baru
-                }).eq("barcode", produk_ditemukan['barcode']).execute()
-                idx = self.df_master.index[self.df_master['barcode'].astype(str) == produk_ditemukan['barcode']].tolist()
+                    raise Exception(
+                        f"Tidak ditemukan data dengan barcode='{produk_ditemukan['barcode']}'."
+                    )
+                _ = (
+                    self.supabase.table(SUPABASE_TABLE)
+                    .update({"harga": harga_baru})
+                    .eq("barcode", produk_ditemukan["barcode"])
+                    .execute()
+                )
+                idx = self.df_master.index[
+                    self.df_master["barcode"].astype(str) == produk_ditemukan["barcode"]
+                ].tolist()
                 if idx:
-                    self.df_master.at[idx[0], 'harga'] = harga_baru
-                messagebox.showinfo("Sukses",
-                    f"Harga '{produk_ditemukan['judul']}' berhasil diubah menjadi Rp. {harga_baru:,.0f}\n"
-                    "Data telah tersinkronisasi ke Database & Cache Lokal.", parent=popup)
+                    self.df_master.at[idx[0], "harga"] = harga_baru
+                messagebox.showinfo(
+                    "Sukses",
+                    f"Harga '{produk_ditemukan['judul']}' berhasil diubah menjadi Rp. {harga_baru:,.0f}\n"  # noqa: E501
+                    "Data telah tersinkronisasi ke Database & Cache Lokal.",
+                    parent=popup,
+                )
                 popup.config(cursor="")
                 popup.destroy()
                 self.ent_search.focus_force()
                 self.refresh_data_master_view()
             except Exception as e:
                 popup.config(cursor="")
-                messagebox.showerror("Gagal Sync", f"Gagal mengupdate ke Supabase:\n{str(e)}", parent=popup)
+                messagebox.showerror(
+                    "Gagal Sync", f"Gagal mengupdate ke Supabase:\n{str(e)}", parent=popup
+                )
 
         frame_aksi = ttk.Frame(popup)
         frame_aksi.pack(fill="x", padx=15, pady=15)
         ttk.Button(frame_aksi, text="Batal", command=popup.destroy).pack(side="left", padx=5)
-        ttk.Button(frame_aksi, text=" Simpan & Sync ke Supabase", command=simpan_ke_supabase).pack(side="right", padx=5)
+        ttk.Button(frame_aksi, text=" Simpan & Sync ke Supabase", command=simpan_ke_supabase).pack(
+            side="right", padx=5
+        )
 
-    def buka_popup_pilihan_produk_ubah_harga(self, df_pilihan, parent_popup, produk_ditemukan,
-                                              lbl_nama, lbl_harga_lama, ent_harga_baru):
+    def buka_popup_pilihan_produk_ubah_harga(
+        self, df_pilihan, parent_popup, produk_ditemukan, lbl_nama, lbl_harga_lama, ent_harga_baru
+    ):
         popup_pilih = tk.Toplevel(self.root)
         popup_pilih.title(f"Pilih Produk ({len(df_pilihan)} hasil)")
         self.center_popup(popup_pilih, 580, 380)
@@ -1246,15 +1559,19 @@ class KasirApp:
         popup_pilih.grab_set()
         popup_pilih.bind("<Escape>", lambda e: popup_pilih.destroy())
 
-        ttk.Label(popup_pilih, text=f"Ditemukan {len(df_pilihan)} produk. Pilih salah satu:",
-                  font=("Segoe UI", 9, "bold")).pack(pady=8)
+        ttk.Label(
+            popup_pilih,
+            text=f"Ditemukan {len(df_pilihan)} produk. Pilih salah satu:",
+            font=("Segoe UI", 9, "bold"),
+        ).pack(pady=8)
 
         frame_list = ttk.Frame(popup_pilih)
         frame_list.pack(fill="both", expand=True, padx=10, pady=5)
 
         cols = ("barcode", "judul", "harga")
-        tree_select = ttk.Treeview(frame_list, columns=cols, show="headings", selectmode="browse",
-                                   style="Unified.Treeview")
+        tree_select = ttk.Treeview(
+            frame_list, columns=cols, show="headings", selectmode="browse", style="Unified.Treeview"
+        )
         tree_select.heading("barcode", text="Barcode")
         tree_select.heading("judul", text="Judul")
         tree_select.heading("harga", text="Harga")
@@ -1267,8 +1584,10 @@ class KasirApp:
         tree_select.pack(side="left", fill="both", expand=True)
 
         for _, row in df_pilihan.iterrows():
-            harga_val = float(row['harga'])
-            tree_select.insert("", "end", values=(row['barcode'], row['judul'], f"Rp. {harga_val:,.0f}"))
+            harga_val = float(row["harga"])
+            tree_select.insert(
+                "", "end", values=(row["barcode"], row["judul"], f"Rp. {harga_val:,.0f}")
+            )
 
         children = tree_select.get_children()
         if children:
@@ -1283,30 +1602,34 @@ class KasirApp:
             idx = tree_select.index(selected[0])
             item_selected = df_pilihan.iloc[idx]
             produk_ditemukan.clear()
-            produk_ditemukan['barcode'] = str(item_selected['barcode'])
-            produk_ditemukan['judul'] = str(item_selected['judul'])
-            produk_ditemukan['harga'] = float(item_selected['harga'])
+            produk_ditemukan["barcode"] = str(item_selected["barcode"])
+            produk_ditemukan["judul"] = str(item_selected["judul"])
+            produk_ditemukan["harga"] = float(item_selected["harga"])
             lbl_nama.config(text=f"Nama Produk: {produk_ditemukan['judul']}", foreground="black")
             lbl_harga_lama.config(text=f"Harga Saat Ini: Rp. {produk_ditemukan['harga']:,.0f}")
             ent_harga_baru.delete(0, tk.END)
-            ent_harga_baru.insert(0, str(int(produk_ditemukan['harga'])))
+            ent_harga_baru.insert(0, str(int(produk_ditemukan["harga"])))
             ent_harga_baru.focus_force()
             ent_harga_baru.selection_range(0, tk.END)
             popup_pilih.destroy()
 
         tree_select.bind("<Return>", pilih_item_terpilih)
         popup_pilih.bind("<Return>", pilih_item_terpilih)
-        ttk.Button(popup_pilih, text="Pilih Produk Ini (ENTER)", command=pilih_item_terpilih).pack(pady=8)
+        ttk.Button(popup_pilih, text="Pilih Produk Ini (ENTER)", command=pilih_item_terpilih).pack(
+            pady=8
+        )
 
     # =========================================================================
     # TAMBAH PRODUK
     # =========================================================================
     def buka_popup_tambah_produk(self):
-        if not getattr(self, 'is_supabase_ready', False):
-            messagebox.showerror("Error Koneksi",
+        if not getattr(self, "is_supabase_ready", False):
+            messagebox.showerror(
+                "Error Koneksi",
                 "Klien Supabase belum terkonfigurasi atau library belum diinstal.\n"
                 "1. Pastikan 'pip install supabase' sudah dijalankan.\n"
-                "2. Isi SUPABASE_URL dan SUPABASE_KEY di file .env.")
+                "2. Isi SUPABASE_URL dan SUPABASE_KEY di file .env.",
+            )
             return
 
         popup = tk.Toplevel(self.root)
@@ -1316,7 +1639,9 @@ class KasirApp:
         popup.grab_set()
         popup.bind("<Escape>", lambda e: (popup.destroy(), self.ent_search.focus_force()))
 
-        frame_form = ttk.LabelFrame(popup, text="1. Data Produk (Urut Kolom: barcode | judul | harga)")
+        frame_form = ttk.LabelFrame(
+            popup, text="1. Data Produk (Urut Kolom: barcode | judul | harga)"
+        )
         frame_form.pack(fill="x", padx=15, pady=10)
 
         row_barcode = ttk.Frame(frame_form)
@@ -1339,8 +1664,13 @@ class KasirApp:
 
         frame_preview = ttk.LabelFrame(popup, text="2. Preview Baris Tabel")
         frame_preview.pack(fill="both", expand=True, padx=15, pady=5)
-        tree_preview = ttk.Treeview(frame_preview, columns=("barcode", "judul", "harga"), show="headings", height=4,
-                                    style="Unified.Treeview")
+        tree_preview = ttk.Treeview(
+            frame_preview,
+            columns=("barcode", "judul", "harga"),
+            show="headings",
+            height=4,
+            style="Unified.Treeview",
+        )
         tree_preview.heading("barcode", text="barcode")
         tree_preview.heading("judul", text="judul")
         tree_preview.heading("harga", text="harga")
@@ -1352,11 +1682,15 @@ class KasirApp:
         def update_preview(event=None):
             for r in tree_preview.get_children():
                 tree_preview.delete(r)
-            tree_preview.insert("", "end", values=(
-                ent_barcode.get().strip(),
-                ent_judul.get().strip(),
-                ent_harga.get().strip()
-            ))
+            tree_preview.insert(
+                "",
+                "end",
+                values=(
+                    ent_barcode.get().strip(),
+                    ent_judul.get().strip(),
+                    ent_harga.get().strip(),
+                ),
+            )
 
         for ent in (ent_barcode, ent_judul, ent_harga):
             ent.bind("<KeyRelease>", update_preview)
@@ -1375,39 +1709,62 @@ class KasirApp:
             barcode_baru = ent_barcode.get().strip()
             judul_baru = ent_judul.get().strip()
             if not barcode_baru or not judul_baru:
-                messagebox.showwarning("Peringatan", "Barcode dan Judul produk wajib diisi!", parent=popup)
+                messagebox.showwarning(
+                    "Peringatan", "Barcode dan Judul produk wajib diisi!", parent=popup
+                )
                 return
             try:
                 harga_baru = float(ent_harga.get().replace(",", "").strip())
                 if harga_baru < 0:
                     raise ValueError("Harga tidak boleh negatif")
             except ValueError:
-                messagebox.showerror("Input Error", "Masukkan nominal harga yang valid (angka)!", parent=popup)
+                messagebox.showerror(
+                    "Input Error", "Masukkan nominal harga yang valid (angka)!", parent=popup
+                )
                 return
             if self.is_loading:
-                messagebox.showwarning("Proses Loading", "Database master sedang dimuat. Mohon tunggu sebentar!", parent=popup)
+                messagebox.showwarning(
+                    "Proses Loading",
+                    "Database master sedang dimuat. Mohon tunggu sebentar!",
+                    parent=popup,
+                )
                 return
             try:
                 if self.df_master is not None and not self.df_master.empty:
-                    duplikat = self.df_master[self.df_master['barcode'].astype(str) == barcode_baru]
+                    duplikat = self.df_master[self.df_master["barcode"].astype(str) == barcode_baru]
                     if not duplikat.empty:
-                        messagebox.showwarning("Duplikat", f"Barcode '{barcode_baru}' sudah terdaftar di tabel master!", parent=popup)
+                        messagebox.showwarning(
+                            "Duplikat",
+                            f"Barcode '{barcode_baru}' sudah terdaftar di tabel master!",
+                            parent=popup,
+                        )
                         return
-                cek_cloud = self.supabase.table(SUPABASE_TABLE).select("barcode").eq("barcode", barcode_baru).execute()
+                cek_cloud = (
+                    self.supabase.table(SUPABASE_TABLE)
+                    .select("barcode")
+                    .eq("barcode", barcode_baru)
+                    .execute()
+                )
                 if cek_cloud.data:
-                    messagebox.showwarning("Duplikat", f"Barcode '{barcode_baru}' sudah terdaftar di tabel master!", parent=popup)
+                    messagebox.showwarning(
+                        "Duplikat",
+                        f"Barcode '{barcode_baru}' sudah terdaftar di tabel master!",
+                        parent=popup,
+                    )
                     return
             except Exception as e:
                 logging.error(f"Gagal cek duplikat barcode: {e}", exc_info=True)
             popup.config(cursor="watch")
             popup.update()
             try:
-                response = self.supabase.table(SUPABASE_TABLE).insert({
-                    "barcode": barcode_baru,
-                    "judul": judul_baru,
-                    "harga": harga_baru
-                }).execute()
-                baris_baru = pd.DataFrame([{"barcode": barcode_baru, "judul": judul_baru, "harga": harga_baru}])
+                _ = (
+                    self.supabase.table(SUPABASE_TABLE)
+                    .insert({"barcode": barcode_baru, "judul": judul_baru, "harga": harga_baru})
+                    .execute()
+                )
+                baris_baru = pd.DataFrame(
+                    [{"barcode": barcode_baru, "judul": judul_baru, "harga": harga_baru}]
+                )
                 if self.df_master is None or self.df_master.empty:
                     self.df_master = baris_baru
                 else:
@@ -1421,19 +1778,22 @@ class KasirApp:
                 except Exception as e:
                     print(f"⚠️ Gagal memperbarui cache parquet: {e}")
                 self.lbl_status.config(
-                    text=f"[ 🟢 ONLINE Cloud: {len(self.df_master):,} Produk ]",
-                    foreground="green"
+                    text=f"[ 🟢 ONLINE Cloud: {len(self.df_master):,} Produk ]", foreground="green"
                 )
                 popup.config(cursor="")
                 popup.destroy()
-                messagebox.showinfo("Sukses",
+                messagebox.showinfo(
+                    "Sukses",
                     f"Produk '{judul_baru}' berhasil ditambahkan ke tabel '{SUPABASE_TABLE}'.\n"
-                    "Data telah tersinkronisasi ke Database & Cache Lokal.")
+                    "Data telah tersinkronisasi ke Database & Cache Lokal.",
+                )
                 self.ent_search.focus_force()
                 self.refresh_data_master_view()
             except Exception as e:
                 popup.config(cursor="")
-                messagebox.showerror("Gagal Sync", f"Gagal menambahkan produk ke Supabase:\n{str(e)}", parent=popup)
+                messagebox.showerror(
+                    "Gagal Sync", f"Gagal menambahkan produk ke Supabase:\n{str(e)}", parent=popup
+                )
 
         ent_barcode.bind("<Return>", fokus_judul)
         ent_judul.bind("<Return>", fokus_harga)
@@ -1442,7 +1802,9 @@ class KasirApp:
         frame_aksi = ttk.Frame(popup)
         frame_aksi.pack(fill="x", padx=15, pady=15)
         ttk.Button(frame_aksi, text="Batal (ESC)", command=popup.destroy).pack(side="left", padx=5)
-        ttk.Button(frame_aksi, text="💾 Simpan & Sync (ENTER)", command=simpan_produk).pack(side="right", padx=5)
+        ttk.Button(frame_aksi, text="💾 Simpan & Sync (ENTER)", command=simpan_produk).pack(
+            side="right", padx=5
+        )
 
     # =========================================================================
     # HALAMAN TRANSAKSI - RESPONSIVE + TOMBOL TERBACA
@@ -1456,33 +1818,46 @@ class KasirApp:
 
         row_master = ttk.Frame(frame_config)
         row_master.pack(fill="x", padx=5, pady=6)
-        self.lbl_status = ttk.Label(row_master, text="[ 🔄 Connecting Database... Mohon Tunggu ]", font=("Segoe UI", 9, "bold"), foreground="blue")
+        self.lbl_status = ttk.Label(
+            row_master,
+            text="[ 🔄 Connecting Database... Mohon Tunggu ]",
+            font=("Segoe UI", 9, "bold"),
+            foreground="blue",
+        )
         self.lbl_status.pack(side="left", padx=5)
 
         row_target = ttk.Frame(frame_config)
         row_target.pack(fill="x", padx=5, pady=6)
-        btn_target = ttk.Button(row_target, text="Pilih File Target Output", command=self.pilih_target_file)
+        btn_target = ttk.Button(
+            row_target, text="Pilih File Target Output", command=self.pilih_target_file
+        )
         btn_target.pack(side="left", padx=5)
-        self.lbl_target_path = ttk.Label(row_target, text="Belum dipilih", foreground="red", font=("Segoe UI", 9, "bold"))
+        self.lbl_target_path = ttk.Label(
+            row_target, text="Belum dipilih", foreground="red", font=("Segoe UI", 9, "bold")
+        )
         self.lbl_target_path.pack(side="left", padx=5)
         ttk.Label(row_target, text="Pilih Sheet Target:").pack(side="left", padx=(20, 2))
         self.combo_sheet = ttk.Combobox(row_target, width=15, state="readonly")
         self.combo_sheet.pack(side="left", padx=2)
         self.combo_sheet.bind("<<ComboboxSelected>>", self.on_sheet_changed)
-        btn_add_sheet = ttk.Button(row_target, text="+ Sheet", width=8, command=self.tambah_sheet_baru)
+        btn_add_sheet = ttk.Button(
+            row_target, text="+ Sheet", width=8, command=self.tambah_sheet_baru
+        )
         btn_add_sheet.pack(side="left", padx=5)
 
         info_struktur = ttk.Label(
             frame_config,
-            text=" Struktur Kolom Excel Baku (A s.d. L): [A] No | [B] Kode | [C] Judul | [D] Qty | [E] Harga | [F] Total | [G-H] Metode | [I] Diskon | [J] Member | [K] Waktu | [L] NOMAN",
+            text=" Struktur Kolom Excel Baku (A s.d. L): [A] No | [B] Kode | [C] Judul | [D] Qty | [E] Harga | [F] Total | [G-H] Metode | [I] Diskon | [J] Member | [K] Waktu | [L] NOMAN",  # noqa: E501
             font=("Segoe UI", 8, "italic"),
-            foreground="darkslategray"
+            foreground="darkslategray",
         )
         info_struktur.pack(anchor="w", padx=10, pady=(4, 8))
 
         scan_frame = ttk.LabelFrame(parent, text=" Area Scan / Cari Produk ")
         scan_frame.pack(fill="x", padx=10, pady=5)
-        ttk.Label(scan_frame, text="Cari Barcode / Judul:", font=("Segoe UI", 10, "bold")).pack(side="left", padx=5)
+        ttk.Label(scan_frame, text="Cari Barcode / Judul:", font=("Segoe UI", 10, "bold")).pack(
+            side="left", padx=5
+        )
         self.ent_search = ttk.Entry(scan_frame, font=("Segoe UI", 11))
         self.ent_search.pack(side="left", fill="x", expand=True, padx=5, pady=5)
         self.ent_search.bind("<Return>", self.proses_scan_trigger)
@@ -1492,9 +1867,23 @@ class KasirApp:
         table_frame = ttk.Frame(parent)
         table_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-        columns = ("no", "barcode", "judul", "jumlah", "harga_normal", "diskon", "harga_akhir", "total")
-        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings",
-                                 selectmode="browse", style="Unified.Treeview")
+        columns = (
+            "no",
+            "barcode",
+            "judul",
+            "jumlah",
+            "harga_normal",
+            "diskon",
+            "harga_akhir",
+            "total",
+        )
+        self.tree = ttk.Treeview(
+            table_frame,
+            columns=columns,
+            show="headings",
+            selectmode="browse",
+            style="Unified.Treeview",
+        )
         self.tree.heading("no", text="No")
         self.tree.heading("barcode", text="Barcode")
         self.tree.heading("judul", text="Judul")
@@ -1519,7 +1908,7 @@ class KasirApp:
         self.tree.bind("<Escape>", lambda event: self.ent_search.focus_force())
         self.root.bind("<F5>", lambda event: self.buka_popup_pembayaran())
 
-                # ============================================================
+        # ============================================================
         # BOTTOM BAR - TOMBOL SERAGAM (ukuran = tombol Editor Nota)
         # ============================================================
         bottom_frame = tk.Frame(parent, bg="#f5f6fa")
@@ -1529,16 +1918,22 @@ class KasirApp:
         summary_box = tk.Frame(bottom_frame, bg="#ecf0f1", bd=1, relief="solid")
         summary_box.pack(side="top", fill="x", pady=(0, 8))
 
-        self.lbl_total_qty = tk.Label(summary_box,
-                                      text="TOTAL ITEM / QTY: 0 Pcs",
-                                      font=("Segoe UI", 12, "bold"),
-                                      bg="#ecf0f1", fg="#27ae60")
+        self.lbl_total_qty = tk.Label(
+            summary_box,
+            text="TOTAL ITEM / QTY: 0 Pcs",
+            font=("Segoe UI", 12, "bold"),
+            bg="#ecf0f1",
+            fg="#27ae60",
+        )
         self.lbl_total_qty.pack(side="left", padx=15, pady=10)
 
-        self.lbl_total = tk.Label(summary_box,
-                                  text="TOTAL BELANJA: Rp. 0",
-                                  font=("Segoe UI", 16, "bold"),
-                                  bg="#ecf0f1", fg="#2980b9")
+        self.lbl_total = tk.Label(
+            summary_box,
+            text="TOTAL BELANJA: Rp. 0",
+            font=("Segoe UI", 16, "bold"),
+            bg="#ecf0f1",
+            fg="#2980b9",
+        )
         self.lbl_total.pack(side="right", padx=15, pady=10)
 
         # --- Button Row (UKURAN SERAGAM DENGAN EDITOR NOTA) ---
@@ -1546,45 +1941,57 @@ class KasirApp:
         btn_row.pack(side="bottom", fill="x", pady=2)
 
         # Tombol Hapus - MERAH
-        btn_delete_item = tk.Button(btn_row,
-                                    text="🗑️ Hapus Item (Del)",
-                                    command=self.hapus_item_terpilih,
-                                    font=("Segoe UI", 10, "bold"),
-                                    bg="#e74c3c", fg="#ffffff",
-                                    activebackground="#c0392b",
-                                    activeforeground="#ffffff",
-                                    relief="flat",
-                                    padx=20, pady=6,
-                                    cursor="hand2",
-                                    borderwidth=0)
+        btn_delete_item = tk.Button(
+            btn_row,
+            text="🗑️ Hapus Item (Del)",
+            command=self.hapus_item_terpilih,
+            font=("Segoe UI", 10, "bold"),
+            bg="#e74c3c",
+            fg="#ffffff",
+            activebackground="#c0392b",
+            activeforeground="#ffffff",
+            relief="flat",
+            padx=20,
+            pady=6,
+            cursor="hand2",
+            borderwidth=0,
+        )
         btn_delete_item.pack(side="left", padx=5)
 
         # Tombol Reset - ABU-ABU GELAP
-        btn_reset = tk.Button(btn_row,
-                              text="🔄 Reset Transaksi",
-                              command=self.reset_transaksi,
-                              font=("Segoe UI", 10, "bold"),
-                              bg="#7f8c8d", fg="#ffffff",
-                              activebackground="#616a6b",
-                              activeforeground="#ffffff",
-                              relief="flat",
-                              padx=20, pady=6,
-                              cursor="hand2",
-                              borderwidth=0)
+        btn_reset = tk.Button(
+            btn_row,
+            text="🔄 Reset Transaksi",
+            command=self.reset_transaksi,
+            font=("Segoe UI", 10, "bold"),
+            bg="#7f8c8d",
+            fg="#ffffff",
+            activebackground="#616a6b",
+            activeforeground="#ffffff",
+            relief="flat",
+            padx=20,
+            pady=6,
+            cursor="hand2",
+            borderwidth=0,
+        )
         btn_reset.pack(side="right", padx=5)
 
         # Tombol Selesai - HIJAU (lebih besar & menonjol)
-        btn_finish = tk.Button(btn_row,
-                               text="💰 SELESAI & SIMPAN (F5)",
-                               command=self.buka_popup_pembayaran,
-                               font=("Segoe UI", 11, "bold"),
-                               bg="#27ae60", fg="#ffffff",
-                               activebackground="#1e8449",
-                               activeforeground="#ffffff",
-                               relief="flat",
-                               padx=25, pady=6,
-                               cursor="hand2",
-                               borderwidth=0)
+        btn_finish = tk.Button(
+            btn_row,
+            text="💰 SELESAI & SIMPAN (F5)",
+            command=self.buka_popup_pembayaran,
+            font=("Segoe UI", 11, "bold"),
+            bg="#27ae60",
+            fg="#ffffff",
+            activebackground="#1e8449",
+            activeforeground="#ffffff",
+            relief="flat",
+            padx=25,
+            pady=6,
+            cursor="hand2",
+            borderwidth=0,
+        )
         btn_finish.pack(side="right", padx=5)
 
     # =========================================================================
@@ -1593,44 +2000,69 @@ class KasirApp:
     def setup_halaman_laporan(self, parent):
         frame_top_rep = ttk.Frame(parent)
         frame_top_rep.pack(fill="x", padx=10, pady=10)
-        lbl_rep_title = ttk.Label(frame_top_rep, text="Pilih Sheet Laporan:", font=("Segoe UI", 10, "bold"))
+        lbl_rep_title = ttk.Label(
+            frame_top_rep, text="Pilih Sheet Laporan:", font=("Segoe UI", 10, "bold")
+        )
         lbl_rep_title.pack(side="left", padx=5)
-        self.lbl_file_output = ttk.Label(frame_top_rep, text="[File: -]", font=("Segoe UI", 9, "italic"), foreground="gray")
+        self.lbl_file_output = ttk.Label(
+            frame_top_rep, text="[File: -]", font=("Segoe UI", 9, "italic"), foreground="gray"
+        )
         self.lbl_file_output.pack(side="left", padx=10)
         self.combo_sheet_report = ttk.Combobox(frame_top_rep, width=20, state="readonly")
         self.combo_sheet_report.pack(side="left", padx=5)
         self.combo_sheet_report.bind("<<ComboboxSelected>>", self.muat_tabel_laporan_excel)
-        btn_refresh = ttk.Button(frame_top_rep, text="🔄 Refresh Data", command=self.force_refresh_laporan)
+        btn_refresh = ttk.Button(
+            frame_top_rep, text="🔄 Refresh Data", command=self.force_refresh_laporan
+        )
         btn_refresh.pack(side="left", padx=5)
-        btn_setoran = ttk.Button(frame_top_rep, text="📊 Setoran Harian", command=self.proses_setoran_harian)
+        btn_setoran = ttk.Button(
+            frame_top_rep, text="📊 Setoran Harian", command=self.proses_setoran_harian
+        )
         btn_setoran.pack(side="left", padx=15)
-        btn_reprint = ttk.Button(frame_top_rep, text="🖨️ Re-Print Nota Terpilih", command=self.reprint_nota_dari_sheet)
+        btn_reprint = ttk.Button(
+            frame_top_rep, text="🖨️ Re-Print Nota Terpilih", command=self.reprint_nota_dari_sheet
+        )
         btn_reprint.pack(side="left", padx=5)
-        btn_save_noman = ttk.Button(frame_top_rep, text="💾 Simpan Semua NOMAN", command=self.simpan_semua_noman_ke_excel)
+        btn_save_noman = ttk.Button(
+            frame_top_rep, text="💾 Simpan Semua NOMAN", command=self.simpan_semua_noman_ke_excel
+        )
         btn_save_noman.pack(side="left", padx=5)
 
         self.frame_summary_box = tk.Frame(parent, bg="#ecf0f1", bd=1, relief="solid")
         self.frame_summary_box.pack(fill="x", padx=10, pady=5)
 
-        self.lbl_setoran_tunai = tk.Label(self.frame_summary_box, text="Total Tunai: Rp. 0",
-                                          font=("Segoe UI", 11, "bold"),
-                                          bg="#ecf0f1", fg="#27ae60")
+        self.lbl_setoran_tunai = tk.Label(
+            self.frame_summary_box,
+            text="Total Tunai: Rp. 0",
+            font=("Segoe UI", 11, "bold"),
+            bg="#ecf0f1",
+            fg="#27ae60",
+        )
         self.lbl_setoran_tunai.pack(side="left", padx=15, pady=10)
 
-        self.lbl_setoran_nontunai = tk.Label(self.frame_summary_box, text="Total Non-Tunai: Rp. 0",
-                                             font=("Segoe UI", 11, "bold"),
-                                             bg="#ecf0f1", fg="#e67e22")
+        self.lbl_setoran_nontunai = tk.Label(
+            self.frame_summary_box,
+            text="Total Non-Tunai: Rp. 0",
+            font=("Segoe UI", 11, "bold"),
+            bg="#ecf0f1",
+            fg="#e67e22",
+        )
         self.lbl_setoran_nontunai.pack(side="left", padx=15, pady=10)
 
-        self.lbl_setoran_grand = tk.Label(self.frame_summary_box, text="GRAND TOTAL SETORAN: Rp. 0",
-                                          font=("Segoe UI", 12, "bold"),
-                                          bg="#ecf0f1", fg="#2980b9")
+        self.lbl_setoran_grand = tk.Label(
+            self.frame_summary_box,
+            text="GRAND TOTAL SETORAN: Rp. 0",
+            font=("Segoe UI", 12, "bold"),
+            bg="#ecf0f1",
+            fg="#2980b9",
+        )
         self.lbl_setoran_grand.pack(side="right", padx=15, pady=10)
 
         table_frame_rep = ttk.Frame(parent)
         table_frame_rep.pack(fill="both", expand=True, padx=10, pady=5)
-        self.report_tree = ttk.Treeview(table_frame_rep, show="headings",
-                                        style="Unified.Treeview", selectmode="browse")
+        self.report_tree = ttk.Treeview(
+            table_frame_rep, show="headings", style="Unified.Treeview", selectmode="browse"
+        )
         sb_y = ttk.Scrollbar(table_frame_rep, orient="vertical", command=self.report_tree.yview)
         sb_x = ttk.Scrollbar(table_frame_rep, orient="horizontal", command=self.report_tree.xview)
         self.report_tree.configure(yscrollcommand=sb_y.set, xscrollcommand=sb_x.set)
@@ -1648,7 +2080,7 @@ class KasirApp:
         if region != "cell":
             return
         col = self.report_tree.identify_column(event.x)
-        if col != '#12':
+        if col != "#12":
             return
         item_id = self.report_tree.identify_row(event.y)
         if not item_id:
@@ -1671,7 +2103,7 @@ class KasirApp:
                 if len(prev_values) > 0 and str(prev_values[0]).strip() == no_transaksi:
                     return False
             return True
-        except:
+        except Exception:
             return True
 
     def on_report_tree_motion(self, event):
@@ -1679,7 +2111,7 @@ class KasirApp:
             region = self.report_tree.identify("region", event.x, event.y)
             if region == "cell":
                 col = self.report_tree.identify_column(event.x)
-                if col == '#12':
+                if col == "#12":
                     item_id = self.report_tree.identify_row(event.y)
                     if item_id:
                         values = self.report_tree.item(item_id, "values")
@@ -1704,8 +2136,12 @@ class KasirApp:
         popup.grab_set()
         popup.configure(bg="#f0f0f0")
 
-        ttk.Label(popup, text=f"📝 NOMAN untuk Transaksi #{no_transaksi}", font=("Segoe UI", 11, "bold")).pack(pady=(15, 5))
-        ttk.Label(popup, text="Masukkan nilai numerik (boleh diawali 0):", font=("Segoe UI", 9)).pack(pady=(0, 5))
+        ttk.Label(
+            popup, text=f"📝 NOMAN untuk Transaksi #{no_transaksi}", font=("Segoe UI", 11, "bold")
+        ).pack(pady=(15, 5))
+        ttk.Label(
+            popup, text="Masukkan nilai numerik (boleh diawali 0):", font=("Segoe UI", 9)
+        ).pack(pady=(0, 5))
         ent_noman = ttk.Entry(popup, width=25, font=("Segoe UI", 14, "bold"), justify="center")
         ent_noman.pack(pady=5)
         if current_state["value"] is not None:
@@ -1716,12 +2152,12 @@ class KasirApp:
         def validate_input(P):
             if P == "":
                 return True
-            if all(c.isdigit() or c == '.' for c in P):
-                if P.count('.') <= 1:
+            if all(c.isdigit() or c == "." for c in P):
+                if P.count(".") <= 1:
                     return True
             return False
 
-        vcmd = (popup.register(validate_input), '%P')
+        vcmd = (popup.register(validate_input), "%P")
         ent_noman.configure(validate="key", validatecommand=vcmd)
 
         btn_frame = ttk.Frame(popup)
@@ -1729,8 +2165,10 @@ class KasirApp:
 
         def simpan_nilai(event=None):
             raw = ent_noman.get().strip()
-            if not raw or raw == '.':
-                messagebox.showwarning("Peringatan", "Nilai NOMAN tidak boleh kosong!", parent=popup)
+            if not raw or raw == ".":
+                messagebox.showwarning(
+                    "Peringatan", "Nilai NOMAN tidak boleh kosong!", parent=popup
+                )
                 popup.after(100, lambda: self._force_focus_entry(ent_noman))
                 return
             nilai_str = raw
@@ -1747,7 +2185,7 @@ class KasirApp:
                             if not first_row_updated:
                                 cell = ws[f"L{r_idx}"]
                                 cell.value = nilai_str
-                                cell.number_format = '@'
+                                cell.number_format = "@"
                                 first_row_updated = True
                             else:
                                 ws[f"L{r_idx}"] = ""
@@ -1756,7 +2194,11 @@ class KasirApp:
                     self.cached_sheet_name = None
                 except Exception as e:
                     logging.error(f"Gagal simpan NOMAN ke Excel: {e}", exc_info=True)
-                    messagebox.showwarning("Peringatan", f"Nilai tersimpan di tampilan tapi gagal ditulis ke Excel:\n{str(e)}", parent=popup)
+                    messagebox.showwarning(
+                        "Peringatan",
+                        f"Nilai tersimpan di tampilan tapi gagal ditulis ke Excel:\n{str(e)}",
+                        parent=popup,
+                    )
             popup.destroy()
 
         def batal_input():
@@ -1814,7 +2256,11 @@ class KasirApp:
         if not sheet_name:
             messagebox.showwarning("Peringatan", "Pilih sheet laporan yang valid!")
             return
-        sheet_noman = {k: v for k, v in self.noman_data.items() if k[0] == sheet_name and v.get("checked") and v.get("value") is not None}
+        sheet_noman = {
+            k: v
+            for k, v in self.noman_data.items()
+            if k[0] == sheet_name and v.get("checked") and v.get("value") is not None
+        }
         if not sheet_noman:
             messagebox.showinfo("Info", "Tidak ada data NOMAN yang perlu disimpan untuk sheet ini.")
             return
@@ -1834,20 +2280,28 @@ class KasirApp:
                             if not first_row_updated:
                                 cell = ws[f"L{r_idx}"]
                                 cell.value = str(state["value"])
-                                cell.number_format = '@'
+                                cell.number_format = "@"
                                 first_row_updated = True
                                 saved_count += 1
                             else:
                                 ws[f"L{r_idx}"] = ""
                 except Exception as e:
-                    logging.error(f"Gagal simpan NOMAN transaksi {no_transaksi}: {e}", exc_info=True)
+                    logging.error(
+                        f"Gagal simpan NOMAN transaksi {no_transaksi}: {e}", exc_info=True
+                    )
             self.wb_target.save(self.target_file_path)
             self.cached_report_df = None
             self.cached_sheet_name = None
             messagebox.showinfo("Sukses", f"Berhasil menyimpan {saved_count} nilai NOMAN ke Excel!")
             self.force_refresh_laporan()
         except Exception as e:
-            self._show_safe_error(self.root, "Error", "Gagal menyimpan data NOMAN ke Excel.", exception=e, context="simpan_semua_noman_ke_excel")
+            self._show_safe_error(
+                self.root,
+                "Error",
+                "Gagal menyimpan data NOMAN ke Excel.",
+                exception=e,
+                context="simpan_semua_noman_ke_excel",
+            )
 
     def force_refresh_laporan(self):
         self.cached_report_df = None
@@ -1857,13 +2311,13 @@ class KasirApp:
 
     def refresh_data_laporan(self):
         if not self.target_file_path or not self.wb_target:
-            self.combo_sheet_report['values'] = []
+            self.combo_sheet_report["values"] = []
             self.lbl_file_output.config(text="[File: -]")
             return
         file_name = os.path.basename(self.target_file_path)
         self.lbl_file_output.config(text=f"[File: {file_name}]")
         sheets = self.wb_target.sheetnames
-        self.combo_sheet_report['values'] = sheets
+        self.combo_sheet_report["values"] = sheets
         current_active = self.combo_sheet.get()
         if current_active in sheets:
             self.combo_sheet_report.set(current_active)
@@ -1885,7 +2339,10 @@ class KasirApp:
         try:
             file_size_mb = os.path.getsize(self.target_file_path) / (1024 * 1024)
             if file_size_mb > MAX_FILE_SIZE_MB:
-                if not messagebox.askyesno("Peringatan File Besar", f"Ukuran file Excel sangat besar ({file_size_mb:.1f} MB).\nMemuatnya dapat membuat aplikasi lambat atau crash.\n\nApakah Anda yakin ingin melanjutkan?"):
+                if not messagebox.askyesno(
+                    "Peringatan File Besar",
+                    f"Ukuran file Excel sangat besar ({file_size_mb:.1f} MB).\nMemuatnya dapat membuat aplikasi lambat atau crash.\n\nApakah Anda yakin ingin melanjutkan?",  # noqa: E501
+                ):
                     return
         except OSError:
             pass
@@ -1894,11 +2351,19 @@ class KasirApp:
             df_raw = self.cached_report_df
         else:
             try:
-                df_raw = pd.read_excel(self.target_file_path, sheet_name=sheet_name, header=None, dtype=str)
+                df_raw = pd.read_excel(
+                    self.target_file_path, sheet_name=sheet_name, header=None, dtype=str
+                )
                 self.cached_report_df = df_raw
                 self.cached_sheet_name = sheet_name
             except Exception as e:
-                self._show_safe_error(self.root, "Error", "Gagal membaca file Excel. Pastikan file tidak sedang dibuka di aplikasi lain.", exception=e, context="muat_tabel_laporan_excel")
+                self._show_safe_error(
+                    self.root,
+                    "Error",
+                    "Gagal membaca file Excel. Pastikan file tidak sedang dibuka di aplikasi lain.",
+                    exception=e,
+                    context="muat_tabel_laporan_excel",
+                )
                 return
 
         if df_raw.empty or len(df_raw) < 1:
@@ -1908,8 +2373,16 @@ class KasirApp:
         row2 = df_raw.iloc[1].values if len(df_raw) > 1 else []
         headers = []
         for i in range(df_raw.shape[1]):
-            val1 = str(row1[i]).strip() if i < len(row1) and pd.notna(row1[i]) and str(row1[i]).strip().lower() != 'nan' else ""
-            val2 = str(row2[i]).strip() if i < len(row2) and pd.notna(row2[i]) and str(row2[i]).strip().lower() != 'nan' else ""
+            val1 = (
+                str(row1[i]).strip()
+                if i < len(row1) and pd.notna(row1[i]) and str(row1[i]).strip().lower() != "nan"
+                else ""
+            )
+            val2 = (
+                str(row2[i]).strip()
+                if i < len(row2) and pd.notna(row2[i]) and str(row2[i]).strip().lower() != "nan"
+                else ""
+            )
             if val1 and val2 and val1 != val2:
                 header_text = f"{val1} - {val2}"
             elif val1:
@@ -1935,7 +2408,12 @@ class KasirApp:
             max_len = len(h_text)
             for r_idx in range(1, min(50, len(df_raw))):
                 if idx < df_raw.shape[1]:
-                    cell_val = str(df_raw.iloc[r_idx, idx]) if pd.notna(df_raw.iloc[r_idx, idx]) and str(df_raw.iloc[r_idx, idx]).strip().lower() != 'nan' else ""
+                    cell_val = (
+                        str(df_raw.iloc[r_idx, idx])
+                        if pd.notna(df_raw.iloc[r_idx, idx])
+                        and str(df_raw.iloc[r_idx, idx]).strip().lower() != "nan"
+                        else ""
+                    )
                 else:
                     cell_val = ""
                 if len(cell_val) > max_len:
@@ -1953,7 +2431,7 @@ class KasirApp:
             for c_idx in range(num_cols):
                 if c_idx < df_raw.shape[1]:
                     raw_val = df_raw.iloc[r_idx, c_idx]
-                    if pd.notna(raw_val) and str(raw_val).strip().lower() != 'nan':
+                    if pd.notna(raw_val) and str(raw_val).strip().lower() != "nan":
                         row_vals.append(str(raw_val).strip())
                     else:
                         row_vals.append("")
@@ -1992,7 +2470,7 @@ class KasirApp:
                 if "SETORAN" in val_a or "TOTAL" in val_a or "TUTUP" in val_a:
                     continue
                 val_g = df_raw.iloc[r_idx, 6] if df_raw.shape[1] > 6 else 0
-                if pd.notna(val_g) and str(val_g).strip().lower() != 'nan':
+                if pd.notna(val_g) and str(val_g).strip().lower() != "nan":
                     total_tunai += float(str(val_g).replace(",", ""))
             except Exception:
                 pass
@@ -2001,7 +2479,7 @@ class KasirApp:
                 if "SETORAN" in val_a or "TOTAL" in val_a or "TUTUP" in val_a:
                     continue
                 val_h = df_raw.iloc[r_idx, 7] if df_raw.shape[1] > 7 else 0
-                if pd.notna(val_h) and str(val_h).strip().lower() != 'nan':
+                if pd.notna(val_h) and str(val_h).strip().lower() != "nan":
                     total_nontunai += float(str(val_h).replace(",", ""))
             except Exception:
                 pass
@@ -2013,7 +2491,10 @@ class KasirApp:
     def reprint_nota_dari_sheet(self):
         selected_items = self.report_tree.selection()
         if not selected_items:
-            messagebox.showwarning("Peringatan", "Pilih baris transaksi pada tabel laporan terlebih dahulu untuk di-reprint!")
+            messagebox.showwarning(
+                "Peringatan",
+                "Pilih baris transaksi pada tabel laporan terlebih dahulu untuk di-reprint!",
+            )
             return
         sheet_name = self.combo_sheet_report.get()
         if not sheet_name or not self.target_file_path:
@@ -2032,8 +2513,15 @@ class KasirApp:
             clicked_excel_row_idx = -1
             for r_idx in range(2, len(df_raw)):
                 try:
-                    r_vals = [str(df_raw.iloc[r_idx, c]) if pd.notna(df_raw.iloc[r_idx, c]) else "" for c in range(min(3, df_raw.shape[1]))]
-                    if r_vals and str(r_vals[0]).strip() == str(selected_row_values[0]).strip() and str(r_vals[1]).strip() == str(selected_row_values[1]).strip():
+                    r_vals = [
+                        str(df_raw.iloc[r_idx, c]) if pd.notna(df_raw.iloc[r_idx, c]) else ""
+                        for c in range(min(3, df_raw.shape[1]))
+                    ]
+                    if (
+                        r_vals
+                        and str(r_vals[0]).strip() == str(selected_row_values[0]).strip()
+                        and str(r_vals[1]).strip() == str(selected_row_values[1]).strip()
+                    ):
                         clicked_excel_row_idx = r_idx
                         break
                 except Exception:
@@ -2071,41 +2559,107 @@ class KasirApp:
             while start_scan < len(df_raw):
                 try:
                     val_a_check = str(df_raw.iloc[start_scan, 0]).strip()
-                    if val_a_check and val_a_check.replace(".", "").isdigit() and val_a_check != target_no_trx and start_scan != current_r:
+                    if (
+                        val_a_check
+                        and val_a_check.replace(".", "").isdigit()
+                        and val_a_check != target_no_trx
+                        and start_scan != current_r
+                    ):
                         break
-                    barcode = str(df_raw.iloc[start_scan, 1]) if pd.notna(df_raw.iloc[start_scan, 1]) else ""
-                    judul = str(df_raw.iloc[start_scan, 2]) if pd.notna(df_raw.iloc[start_scan, 2]) else ""
-                    qty = float(df_raw.iloc[start_scan, 3]) if pd.notna(df_raw.iloc[start_scan, 3]) else 1
-                    harga = float(df_raw.iloc[start_scan, 4]) if pd.notna(df_raw.iloc[start_scan, 4]) else 0
-                    subtotal = float(df_raw.iloc[start_scan, 5]) if pd.notna(df_raw.iloc[start_scan, 5]) else (qty * harga)
+                    barcode = (
+                        str(df_raw.iloc[start_scan, 1])
+                        if pd.notna(df_raw.iloc[start_scan, 1])
+                        else ""
+                    )
+                    judul = (
+                        str(df_raw.iloc[start_scan, 2])
+                        if pd.notna(df_raw.iloc[start_scan, 2])
+                        else ""
+                    )
+                    qty = (
+                        float(df_raw.iloc[start_scan, 3])
+                        if pd.notna(df_raw.iloc[start_scan, 3])
+                        else 1
+                    )
+                    harga = (
+                        float(df_raw.iloc[start_scan, 4])
+                        if pd.notna(df_raw.iloc[start_scan, 4])
+                        else 0
+                    )
+                    subtotal = (
+                        float(df_raw.iloc[start_scan, 5])
+                        if pd.notna(df_raw.iloc[start_scan, 5])
+                        else (qty * harga)
+                    )
                     val_g = df_raw.iloc[start_scan, 6] if df_raw.shape[1] > 6 else None
                     val_h = df_raw.iloc[start_scan, 7] if df_raw.shape[1] > 7 else None
                     if pd.notna(val_g) and str(val_g).strip() != "":
                         metode_reprint = "TUNAI"
                     elif pd.notna(val_h) and str(val_h).strip() != "":
                         metode_reprint = "NON TUNAI"
-                    diskon = float(df_raw.iloc[start_scan, 8]) if df_raw.shape[1] > 8 and pd.notna(df_raw.iloc[start_scan, 8]) else 0.0
-                    member_val = str(df_raw.iloc[start_scan, 9]) if df_raw.shape[1] > 9 and pd.notna(df_raw.iloc[start_scan, 9]) else ""
+                    diskon = (
+                        float(df_raw.iloc[start_scan, 8])
+                        if df_raw.shape[1] > 8 and pd.notna(df_raw.iloc[start_scan, 8])
+                        else 0.0
+                    )
+                    member_val = (
+                        str(df_raw.iloc[start_scan, 9])
+                        if df_raw.shape[1] > 9 and pd.notna(df_raw.iloc[start_scan, 9])
+                        else ""
+                    )
                     if member_val:
                         member_reprint = member_val
-                    time_val = str(df_raw.iloc[start_scan, 10]) if df_raw.shape[1] > 10 and pd.notna(df_raw.iloc[start_scan, 10]) else ""
+                    time_val = (
+                        str(df_raw.iloc[start_scan, 10])
+                        if df_raw.shape[1] > 10 and pd.notna(df_raw.iloc[start_scan, 10])
+                        else ""
+                    )
                     if time_val:
                         waktu_reprint = time_val
                     if barcode or judul:
-                        items_reprint.append({"barcode": barcode, "judul": judul, "jumlah": int(qty), "harga_akhir": harga, "total": subtotal, "diskon": diskon})
+                        items_reprint.append(
+                            {
+                                "barcode": barcode,
+                                "judul": judul,
+                                "jumlah": int(qty),
+                                "harga_akhir": harga,
+                                "total": subtotal,
+                                "diskon": diskon,
+                            }
+                        )
                 except Exception:
                     pass
                 start_scan += 1
 
             if not items_reprint:
-                messagebox.showwarning("Peringatan", "Tidak ada item valid yang ditemukan untuk transaksi ini.")
+                messagebox.showwarning(
+                    "Peringatan", "Tidak ada item valid yang ditemukan untuk transaksi ini."
+                )
                 return
 
-            grand_total_rep = sum(i['total'] for i in items_reprint)
-            self.cetak_nota_thermal_80mm_custom(no_trx=target_no_trx, metode=metode_reprint, bayar=grand_total_rep, kembali=grand_total_rep, catatan_member=member_reprint, waktu_str=waktu_reprint, items_source=items_reprint, is_reprint=True)
-            messagebox.showinfo("Sukses Re-Print", f"Nota Transaksi No. #{target_no_trx} berhasil dicetak ulang (Re-Print)!")
+            grand_total_rep = sum(i["total"] for i in items_reprint)
+            self.cetak_nota_thermal_80mm_custom(
+                no_trx=target_no_trx,
+                metode=metode_reprint,
+                bayar=grand_total_rep,
+                kembali=grand_total_rep,
+                catatan_member=member_reprint,
+                waktu_str=waktu_reprint,
+                items_source=items_reprint,
+                is_reprint=True,
+            )
+            messagebox.showinfo(
+                "Sukses Re-Print",
+                f"Nota Transaksi No. #{target_no_trx} berhasil dicetak ulang (Re-Print)!",
+            )
         except Exception as e:
-            self._show_safe_error(self.root, "Error Re-Print", "Gagal memproses re-print nota. Silakan coba lagi atau hubungi admin.", exception=e, context="reprint_nota_dari_sheet")
+            self._show_safe_error(
+                self.root,
+                "Error Re-Print",
+                "Gagal memproses re-print nota. Silakan coba lagi atau hubungi admin.",
+                exception=e,
+                context="reprint_nota_dari_sheet",
+            )
 
     def proses_setoran_harian(self):
         if not self.target_file_path or not self.wb_target:
@@ -2130,7 +2684,8 @@ class KasirApp:
                     if "SETORAN" in val_a or "TOTAL" in val_a or "TUTUP" in val_a:
                         continue
                     vg = df_raw.iloc[r_idx, 6]
-                    if pd.notna(vg): total_tunai += float(str(vg).replace(",", ""))
+                    if pd.notna(vg):
+                        total_tunai += float(str(vg).replace(",", ""))
                 except Exception:
                     pass
                 try:
@@ -2138,7 +2693,8 @@ class KasirApp:
                     if "SETORAN" in val_a or "TOTAL" in val_a or "TUTUP" in val_a:
                         continue
                     vh = df_raw.iloc[r_idx, 7]
-                    if pd.notna(vh): total_nontunai += float(str(vh).replace(",", ""))
+                    if pd.notna(vh):
+                        total_nontunai += float(str(vh).replace(",", ""))
                 except Exception:
                     pass
 
@@ -2152,7 +2708,12 @@ class KasirApp:
 
             bold_font = Font(name="Calibri", size=11, bold=True)
             currency_format = '"Rp" #,##0'
-            thin_border = Border(left=Side(style='thin', color='000000'), right=Side(style='thin', color='000000'), top=Side(style='thin', color='000000'), bottom=Side(style='thin', color='000000'))
+            thin_border = Border(
+                left=Side(style="thin", color="000000"),
+                right=Side(style="thin", color="000000"),
+                top=Side(style="thin", color="000000"),
+                bottom=Side(style="thin", color="000000"),
+            )
             for col_l in ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]:
                 cell = ws[f"{col_l}{max_r}"]
                 cell.font = bold_font
@@ -2164,9 +2725,15 @@ class KasirApp:
             self.cached_report_df = None
             self.cached_sheet_name = None
             self.muat_tabel_laporan_excel()
-            messagebox.showinfo("Sukses", f"Setoran Harian berhasil ditutup & disimpan ke Excel!")
+            messagebox.showinfo("Sukses", "Setoran Harian berhasil ditutup & disimpan ke Excel!")
         except Exception as e:
-            self._show_safe_error(self.root, "Error", "Gagal memproses setoran harian. Pastikan file Excel tidak sedang dibuka di aplikasi lain.", exception=e, context="proses_setoran_harian")
+            self._show_safe_error(
+                self.root,
+                "Error",
+                "Gagal memproses setoran harian. Pastikan file Excel tidak sedang dibuka di aplikasi lain.",  # noqa: E501
+                exception=e,
+                context="proses_setoran_harian",
+            )
 
     def buka_popup_edit_qty_langsung(self, event=None):
         selected_items = self.tree.selection()
@@ -2185,12 +2752,17 @@ class KasirApp:
         popup.grab_set()
         popup.bind("<Escape>", lambda e: popup.destroy())
 
-        ttk.Label(popup, text=f"Produk: {current_cart_item['judul']}", font=("Segoe UI", 9, "bold"), wraplength=300).pack(pady=(10, 5))
+        ttk.Label(
+            popup,
+            text=f"Produk: {current_cart_item['judul']}",
+            font=("Segoe UI", 9, "bold"),
+            wraplength=300,
+        ).pack(pady=(10, 5))
         row_q = ttk.Frame(popup)
         row_q.pack(pady=5)
         ttk.Label(row_q, text="Jumlah Baru (Qty):").pack(side="left", padx=5)
         ent_new_qty = ttk.Entry(row_q, width=10, font=("Segoe UI", 11, "bold"))
-        ent_new_qty.insert(0, str(current_cart_item['jumlah']))
+        ent_new_qty.insert(0, str(current_cart_item["jumlah"]))
         ent_new_qty.pack(side="left", padx=5)
         ent_new_qty.focus_force()
         ent_new_qty.selection_range(0, tk.END)
@@ -2198,14 +2770,17 @@ class KasirApp:
         def save_new_qty(event=None):
             try:
                 new_q = int(ent_new_qty.get().strip())
-                if new_q <= 0: raise ValueError()
-                current_cart_item['jumlah'] = new_q
-                current_cart_item['total'] = new_q * current_cart_item['harga_akhir']
+                if new_q <= 0:
+                    raise ValueError()
+                current_cart_item["jumlah"] = new_q
+                current_cart_item["total"] = new_q * current_cart_item["harga_akhir"]
                 self.update_tabel_keranjang()
                 popup.destroy()
                 self.ent_search.focus_force()
             except Exception:
-                messagebox.showwarning("Peringatan", "Masukkan angka bulat positif untuk jumlah!", parent=popup)
+                messagebox.showwarning(
+                    "Peringatan", "Masukkan angka bulat positif untuk jumlah!", parent=popup
+                )
 
         popup.bind("<Return>", save_new_qty)
         ttk.Button(popup, text="Simpan (ENTER)", command=save_new_qty).pack(pady=10)
@@ -2213,13 +2788,29 @@ class KasirApp:
     def cek_dan_buat_header_excel(self, ws):
         val_a1 = ws["A1"].value
         if str(val_a1).strip().lower() not in ["no transaksi", "no"]:
-            thin_border = Border(left=Side(style='thin', color='000000'), right=Side(style='thin', color='000000'), top=Side(style='thin', color='000000'), bottom=Side(style='thin', color='000000'))
+            thin_border = Border(
+                left=Side(style="thin", color="000000"),
+                right=Side(style="thin", color="000000"),
+                top=Side(style="thin", color="000000"),
+                bottom=Side(style="thin", color="000000"),
+            )
             header_font = Font(name="Calibri", size=11, bold=True)
             align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
             fill_standard = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
             fill_nontunai = PatternFill(start_color="BFBFBF", end_color="BFBFBF", fill_type="solid")
             fill_noman = PatternFill(start_color="FFE4B5", end_color="FFE4B5", fill_type="solid")
-            single_cols = [("A", "No"), ("B", "Kode Produk"), ("C", "Judul"), ("D", "Jumlah"), ("E", "Harga satuan"), ("F", "Total Per Produk"), ("I", "Diskon"), ("J", "Member"), ("K", "Waktu"), ("L", "NOMAN")]
+            single_cols = [
+                ("A", "No"),
+                ("B", "Kode Produk"),
+                ("C", "Judul"),
+                ("D", "Jumlah"),
+                ("E", "Harga satuan"),
+                ("F", "Total Per Produk"),
+                ("I", "Diskon"),
+                ("J", "Member"),
+                ("K", "Waktu"),
+                ("L", "NOMAN"),
+            ]
             for col, text in single_cols:
                 ws.merge_cells(f"{col}1:{col}2")
                 cell1 = ws[f"{col}1"]
@@ -2297,7 +2888,9 @@ class KasirApp:
     def hapus_item_terpilih(self, event=None):
         selected_items = self.tree.selection()
         if not selected_items:
-            messagebox.showwarning("Peringatan", "Pilih item di tabel yang ingin dihapus terlebih dahulu!")
+            messagebox.showwarning(
+                "Peringatan", "Pilih item di tabel yang ingin dihapus terlebih dahulu!"
+            )
             return
         selected_item = selected_items[0]
         item_index = self.tree.index(selected_item)
@@ -2321,9 +2914,14 @@ class KasirApp:
 
         def update_label():
             if self.is_online:
-                self.lbl_status.config(text=f"[  ONLINE Cloud: {len(self.df_master):,} Produk ]", foreground="green")
+                self.lbl_status.config(
+                    text=f"[  ONLINE Cloud: {len(self.df_master):,} Produk ]", foreground="green"
+                )
             else:
-                self.lbl_status.config(text=f"[ 🟡 OFFLINE Cache: {len(self.df_master):,} Produk ]", foreground="orange")
+                self.lbl_status.config(
+                    text=f"[ 🟡 OFFLINE Cache: {len(self.df_master):,} Produk ]",
+                    foreground="orange",
+                )
             self.dm_current_page = 1
             self.refresh_data_master_view()
 
@@ -2336,7 +2934,10 @@ class KasirApp:
             try:
                 file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
                 if file_size_mb > MAX_FILE_SIZE_MB:
-                    confirm = messagebox.askyesno("Peringatan File Besar", f"Ukuran file Excel sangat besar ({file_size_mb:.1f} MB).\nOperasi bisa menjadi lambat atau menyebabkan crash.\n\nApakah Anda yakin ingin menggunakan file ini?")
+                    confirm = messagebox.askyesno(
+                        "Peringatan File Besar",
+                        f"Ukuran file Excel sangat besar ({file_size_mb:.1f} MB).\nOperasi bisa menjadi lambat atau menyebabkan crash.\n\nApakah Anda yakin ingin menggunakan file ini?",  # noqa: E501
+                    )
                     if not confirm:
                         return
             except OSError:
@@ -2347,7 +2948,7 @@ class KasirApp:
             try:
                 self.wb_target = openpyxl.load_workbook(file_path)
                 sheets = self.wb_target.sheetnames
-                self.combo_sheet['values'] = sheets
+                self.combo_sheet["values"] = sheets
                 if sheets:
                     self.combo_sheet.current(0)
                 self.cached_report_df = None
@@ -2357,7 +2958,13 @@ class KasirApp:
                 self.hitung_nomor_transaksi_berikutnya()
                 self.buka_popup_pilih_atau_tambah_sheet_pertama()
             except Exception as e:
-                self._show_safe_error(self.root, "Error Excel", "Gagal membaca file target. Pastikan file bukan file Excel yang rusak atau sedang dibuka di aplikasi lain.", exception=e, context="pilih_target_file")
+                self._show_safe_error(
+                    self.root,
+                    "Error Excel",
+                    "Gagal membaca file target. Pastikan file bukan file Excel yang rusak atau sedang dibuka di aplikasi lain.",  # noqa: E501
+                    exception=e,
+                    context="pilih_target_file",
+                )
 
     def buka_popup_pilih_atau_tambah_sheet_pertama(self):
         popup = tk.Toplevel(self.root)
@@ -2367,7 +2974,9 @@ class KasirApp:
         popup.grab_set()
         popup.bind("<Escape>", lambda e: popup.destroy())
 
-        ttk.Label(popup, text="Pilih Sheet untuk Transaksi:", font=("Segoe UI", 10, "bold")).pack(pady=(15, 5))
+        ttk.Label(popup, text="Pilih Sheet untuk Transaksi:", font=("Segoe UI", 10, "bold")).pack(
+            pady=(15, 5)
+        )
         sheets = self.wb_target.sheetnames if self.wb_target else []
         combo_chosen_sheet = ttk.Combobox(popup, values=sheets, width=28, state="readonly")
         if sheets:
@@ -2380,7 +2989,9 @@ class KasirApp:
 
         btn_frame = ttk.Frame(popup)
         btn_frame.pack(pady=15)
-        btn_tambah_plus = ttk.Button(btn_frame, text="➕ Tambah Sheet Baru", command=aksi_tambah_sheet_di_popup)
+        btn_tambah_plus = ttk.Button(
+            btn_frame, text="➕ Tambah Sheet Baru", command=aksi_tambah_sheet_di_popup
+        )
         btn_tambah_plus.pack(side="left", padx=5)
 
         def aksi_pilih():
@@ -2391,7 +3002,9 @@ class KasirApp:
                 popup.destroy()
                 self.ent_search.focus_force()
             else:
-                messagebox.showwarning("Peringatan", "Pilih salah satu sheet terlebih dahulu!", parent=popup)
+                messagebox.showwarning(
+                    "Peringatan", "Pilih salah satu sheet terlebih dahulu!", parent=popup
+                )
 
         btn_ok = ttk.Button(btn_frame, text="Gunakan Sheet Ini", command=aksi_pilih)
         btn_ok.pack(side="left", padx=5)
@@ -2423,7 +3036,7 @@ class KasirApp:
                     new_ws = self.wb_target.create_sheet(title=name)
                     self.cek_dan_buat_header_excel(new_ws)
                     self.wb_target.save(self.target_file_path)
-                    self.combo_sheet['values'] = self.wb_target.sheetnames
+                    self.combo_sheet["values"] = self.wb_target.sheetnames
                     self.combo_sheet.set(name)
                     self.cached_report_df = None
                     self.cached_sheet_name = None
@@ -2435,16 +3048,21 @@ class KasirApp:
 
     def proses_scan_trigger(self, event=None):
         if self.is_loading:
-            messagebox.showinfo("Proses Loading", "Database master sedang dimuat dari cloud. Harap tunggu sebentar!")
+            messagebox.showinfo(
+                "Proses Loading", "Database master sedang dimuat dari cloud. Harap tunggu sebentar!"
+            )
             return
         raw_input = self.ent_search.get().strip()
         if not raw_input:
             return
         if not self.target_file_path or not self.combo_sheet.get():
-            messagebox.showwarning("File Output Belum Dipilih", "Harap pilih 'File Target Output' & 'Sheet Target' terlebih dahulu!")
+            messagebox.showwarning(
+                "File Output Belum Dipilih",
+                "Harap pilih 'File Target Output' & 'Sheet Target' terlebih dahulu!",
+            )
             return
 
-        match_barcode = self.df_master[self.df_master['barcode'].astype(str) == raw_input]
+        match_barcode = self.df_master[self.df_master["barcode"].astype(str) == raw_input]
         if not match_barcode.empty:
             item = match_barcode.iloc[0]
             self.buka_popup_input_produk(item)
@@ -2452,14 +3070,20 @@ class KasirApp:
             return
 
         match_manual = self.df_master[
-            self.df_master['barcode'].astype(str).str.contains(raw_input, case=False, na=False, regex=False) |
-            self.df_master['judul'].astype(str).str.contains(raw_input, case=False, na=False, regex=False)
+            self.df_master["barcode"]
+            .astype(str)
+            .str.contains(raw_input, case=False, na=False, regex=False)
+            | self.df_master["judul"]
+            .astype(str)
+            .str.contains(raw_input, case=False, na=False, regex=False)
         ]
         if not match_manual.empty:
             self.buka_popup_pilihan_produk(match_manual)
             self.ent_search.delete(0, tk.END)
         else:
-            messagebox.showwarning("Tidak Ditemukan", f"Produk dengan kata kunci '{raw_input}' tidak ditemukan!")
+            messagebox.showwarning(
+                "Tidak Ditemukan", f"Produk dengan kata kunci '{raw_input}' tidak ditemukan!"
+            )
 
     def buka_popup_pilihan_produk(self, df_pilihan):
         popup = tk.Toplevel(self.root)
@@ -2469,13 +3093,18 @@ class KasirApp:
         popup.grab_set()
         popup.bind("<Escape>", lambda e: (popup.destroy(), self.ent_search.focus_force()))
 
-        ttk.Label(popup, text="Gunakan Panah Atas/Bawah lalu tekan ENTER untuk memilih:", font=("Segoe UI", 9, "bold")).pack(pady=8)
+        ttk.Label(
+            popup,
+            text="Gunakan Panah Atas/Bawah lalu tekan ENTER untuk memilih:",
+            font=("Segoe UI", 9, "bold"),
+        ).pack(pady=8)
         frame_list = ttk.Frame(popup)
         frame_list.pack(fill="both", expand=True, padx=10, pady=5)
 
         cols = ("barcode", "judul", "harga")
-        tree_select = ttk.Treeview(frame_list, columns=cols, show="headings", selectmode="browse",
-                                   style="Unified.Treeview")
+        tree_select = ttk.Treeview(
+            frame_list, columns=cols, show="headings", selectmode="browse", style="Unified.Treeview"
+        )
         tree_select.heading("barcode", text="Barcode")
         tree_select.heading("judul", text="Judul")
         tree_select.heading("harga", text="Harga")
@@ -2488,8 +3117,10 @@ class KasirApp:
         tree_select.pack(side="left", fill="both", expand=True)
 
         for _, row in df_pilihan.iterrows():
-            harga_val = float(row['harga'])
-            tree_select.insert("", "end", values=(row['barcode'], row['judul'], f"Rp. {harga_val:,.0f}"))
+            harga_val = float(row["harga"])
+            tree_select.insert(
+                "", "end", values=(row["barcode"], row["judul"], f"Rp. {harga_val:,.0f}")
+            )
 
         children = tree_select.get_children()
         if children:
@@ -2518,9 +3149,13 @@ class KasirApp:
         popup.grab_set()
         popup.bind("<Escape>", lambda e: (popup.destroy(), self.ent_search.focus_force()))
 
-        ttk.Label(popup, text=f"Produk: {item['judul']}", font=("Segoe UI", 10, "bold"), wraplength=380).pack(pady=(10, 2))
-        harga_norm = float(item['harga'])
-        ttk.Label(popup, text=f"Harga Normal: Rp. {harga_norm:,.0f}", foreground="gray").pack(pady=(0, 10))
+        ttk.Label(
+            popup, text=f"Produk: {item['judul']}", font=("Segoe UI", 10, "bold"), wraplength=380
+        ).pack(pady=(10, 2))
+        harga_norm = float(item["harga"])
+        ttk.Label(popup, text=f"Harga Normal: Rp. {harga_norm:,.0f}", foreground="gray").pack(
+            pady=(0, 10)
+        )
 
         row_qty = ttk.Frame(popup)
         row_qty.pack(pady=5)
@@ -2536,10 +3171,18 @@ class KasirApp:
         diskon_var = tk.StringVar(value="0")
         row_radio = ttk.Frame(frame_diskon)
         row_radio.pack(pady=5)
-        ttk.Radiobutton(row_radio, text="0%", variable=diskon_var, value="0").pack(side="left", padx=5)
-        ttk.Radiobutton(row_radio, text="5%", variable=diskon_var, value="5").pack(side="left", padx=5)
-        ttk.Radiobutton(row_radio, text="20%", variable=diskon_var, value="20").pack(side="left", padx=5)
-        ttk.Radiobutton(row_radio, text="25%", variable=diskon_var, value="25").pack(side="left", padx=5)
+        ttk.Radiobutton(row_radio, text="0%", variable=diskon_var, value="0").pack(
+            side="left", padx=5
+        )
+        ttk.Radiobutton(row_radio, text="5%", variable=diskon_var, value="5").pack(
+            side="left", padx=5
+        )
+        ttk.Radiobutton(row_radio, text="20%", variable=diskon_var, value="20").pack(
+            side="left", padx=5
+        )
+        ttk.Radiobutton(row_radio, text="25%", variable=diskon_var, value="25").pack(
+            side="left", padx=5
+        )
         row_custom = ttk.Frame(frame_diskon)
         row_custom.pack(pady=5)
         ttk.Label(row_custom, text="Diskon Custom (%):").pack(side="left", padx=5)
@@ -2550,29 +3193,44 @@ class KasirApp:
         def submit_item(event=None):
             try:
                 added_qty = int(ent_qty.get().strip())
-                if added_qty <= 0: raise ValueError()
+                if added_qty <= 0:
+                    raise ValueError()
             except Exception:
-                messagebox.showwarning("Peringatan", "Jumlah Qty harus angka bulat positif!", parent=popup)
+                messagebox.showwarning(
+                    "Peringatan", "Jumlah Qty harus angka bulat positif!", parent=popup
+                )
                 return
             custom_val = ent_custom_diskon.get().strip()
             if custom_val != "0" and custom_val != "":
-                try: diskon_percent = float(custom_val)
-                except Exception: diskon_percent = float(diskon_var.get())
+                try:
+                    diskon_percent = float(custom_val)
+                except Exception:
+                    diskon_percent = float(diskon_var.get())
             else:
                 diskon_percent = float(diskon_var.get())
             harga_akhir = harga_norm * (1 - (diskon_percent / 100))
-            barcode_str = str(item['barcode'])
+            barcode_str = str(item["barcode"])
             existing_item = None
             for cart_item in self.cart:
-                if cart_item['barcode'] == barcode_str and cart_item['diskon'] == diskon_percent:
+                if cart_item["barcode"] == barcode_str and cart_item["diskon"] == diskon_percent:
                     existing_item = cart_item
                     break
             if existing_item:
-                existing_item['jumlah'] += added_qty
-                existing_item['total'] = existing_item['jumlah'] * harga_akhir
+                existing_item["jumlah"] += added_qty
+                existing_item["total"] = existing_item["jumlah"] * harga_akhir
             else:
                 total = harga_akhir * added_qty
-                self.cart.append({"barcode": barcode_str, "judul": str(item['judul']), "jumlah": added_qty, "harga_normal": harga_norm, "diskon": diskon_percent, "harga_akhir": harga_akhir, "total": total})
+                self.cart.append(
+                    {
+                        "barcode": barcode_str,
+                        "judul": str(item["judul"]),
+                        "jumlah": added_qty,
+                        "harga_normal": harga_norm,
+                        "diskon": diskon_percent,
+                        "harga_akhir": harga_akhir,
+                        "total": total,
+                    }
+                )
             self.update_tabel_keranjang()
             popup.destroy()
             self.ent_search.focus_force()
@@ -2581,7 +3239,11 @@ class KasirApp:
         btn_row = ttk.Frame(popup)
         btn_row.pack(pady=10)
         ttk.Button(btn_row, text="OK (ENTER)", command=submit_item).pack(side="left", padx=5)
-        ttk.Button(btn_row, text="Batal (ESC)", command=lambda: (popup.destroy(), self.ent_search.focus_force())).pack(side="left", padx=5)
+        ttk.Button(
+            btn_row,
+            text="Batal (ESC)",
+            command=lambda: (popup.destroy(), self.ent_search.focus_force()),
+        ).pack(side="left", padx=5)
 
     def update_tabel_keranjang(self):
         for row in self.tree.get_children():
@@ -2589,10 +3251,27 @@ class KasirApp:
         grand_total = 0
         total_qty = 0
         for idx, item in enumerate(self.cart, 1):
-            diskon_str = f"{int(item['diskon'])}%" if float(item['diskon']).is_integer() else f"{item['diskon']}%"
-            self.tree.insert("", "end", values=(idx, item['barcode'], item['judul'], item['jumlah'], f"Rp. {item['harga_normal']:,.0f}", diskon_str, f"Rp. {item['harga_akhir']:,.0f}", f"Rp. {item['total']:,.0f}"))
-            grand_total += item['total']
-            total_qty += item['jumlah']
+            diskon_str = (
+                f"{int(item['diskon'])}%"
+                if float(item["diskon"]).is_integer()
+                else f"{item['diskon']}%"
+            )
+            self.tree.insert(
+                "",
+                "end",
+                values=(
+                    idx,
+                    item["barcode"],
+                    item["judul"],
+                    item["jumlah"],
+                    f"Rp. {item['harga_normal']:,.0f}",
+                    diskon_str,
+                    f"Rp. {item['harga_akhir']:,.0f}",
+                    f"Rp. {item['total']:,.0f}",
+                ),
+            )
+            grand_total += item["total"]
+            total_qty += item["jumlah"]
         self.lbl_total.config(text=f"TOTAL BELANJA: Rp. {grand_total:,.0f}")
         self.lbl_total_qty.config(text=f"TOTAL ITEM / QTY: {total_qty:,} Pcs")
 
@@ -2667,13 +3346,22 @@ class KasirApp:
 
     def _daftar_fokus(self, container):
         hasil = []
+
         def rekursif(w):
             for c in w.winfo_children():
                 if isinstance(c, tk.Toplevel):
                     continue
                 cls = c.winfo_class()
-                ikut = cls in ("Entry", "TEntry", "TButton", "Button",
-                               "Combobox", "TCombobox", "Treeview", "Canvas")
+                ikut = cls in (
+                    "Entry",
+                    "TEntry",
+                    "TButton",
+                    "Button",
+                    "Combobox",
+                    "TCombobox",
+                    "Treeview",
+                    "Canvas",
+                )
                 if cls == "Canvas" and not hasattr(c, "command"):
                     ikut = False
                 if ikut:
@@ -2693,6 +3381,7 @@ class KasirApp:
                     if not nonaktif:
                         hasil.append(c)
                 rekursif(c)
+
         rekursif(container)
         hasil.sort(key=lambda w: (w.winfo_rooty(), w.winfo_rootx()))
         return hasil
@@ -2754,7 +3443,7 @@ class KasirApp:
                 popup.destroy()
             except tk.TclError:
                 pass
-        w = self._event_widget(event)
+        _ = self._event_widget(event)
         if self._popdown_aktif():
             return
         try:
@@ -2814,9 +3503,19 @@ class KasirApp:
             self._geser_fokus(tv, -1)
         self._tree_nav_pos[str(tv)] = idx
 
-    def cetak_nota_thermal_80mm_custom(self, no_trx, metode, bayar, kembali, catatan_member, waktu_str=None, items_source=None, is_reprint=False):
+    def cetak_nota_thermal_80mm_custom(
+        self,
+        no_trx,
+        metode,
+        bayar,
+        kembali,
+        catatan_member,
+        waktu_str=None,
+        items_source=None,
+        is_reprint=False,
+    ):
         items_to_print = items_source if items_source is not None else self.cart
-        grand_total = sum(item['total'] for item in items_to_print)
+        grand_total = sum(item["total"] for item in items_to_print)
         if not waktu_str:
             waktu_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
@@ -2852,36 +3551,44 @@ class KasirApp:
                 char = content if content else "-"
                 struk.append(_fmt(char, "full", lebar))
             elif rtype == "header_trx":
-                struk.append(f"No. Trx  : #{no_trx}".ljust(lebar // 2) +
-                             f"Kasir : {nama_kasir}".rjust(lebar - (lebar // 2)))
+                struk.append(
+                    f"No. Trx  : #{no_trx}".ljust(lebar // 2)
+                    + f"Kasir : {nama_kasir}".rjust(lebar - (lebar // 2))
+                )
                 struk.append(f"Waktu   : {waktu_str}".ljust(lebar))
                 if catatan_member:
                     struk.append(f"Member  : {catatan_member}".ljust(lebar))
             elif rtype == "products":
                 for item in items_to_print:
-                    barcode_str = str(item.get('barcode', '') or '').strip()
-                    if barcode_str.lower() in ('nan', 'none'):
-                        barcode_str = ''
-                    if barcode_str.endswith('.0') and barcode_str[:-2].isdigit():
+                    barcode_str = str(item.get("barcode", "") or "").strip()
+                    if barcode_str.lower() in ("nan", "none"):
+                        barcode_str = ""
+                    if barcode_str.endswith(".0") and barcode_str[:-2].isdigit():
                         barcode_str = barcode_str[:-2]
-                    judul = str(item.get('judul', ''))
+                    judul = str(item.get("judul", ""))
                     baris_produk = f"{barcode_str} {judul}".strip() if barcode_str else judul
                     struk.append(baris_produk[:lebar])
                     qty_price = f"  {item['jumlah']} x @{item['harga_akhir']:,.0f}"
                     subtotal = f"Rp. {item['total']:,.0f}"
                     spasi = max(2, lebar - len(qty_price) - len(subtotal))
                     struk.append(qty_price + (" " * spasi) + subtotal)
-                    if item.get('diskon', 0) > 0:
+                    if item.get("diskon", 0) > 0:
                         struk.append(f"  (Diskon {item['diskon']}%)".ljust(lebar))
             elif rtype == "total":
-                struk.append(f"TOTAL BELANJA".ljust(lebar // 2) +
-                             f"Rp. {grand_total:,.0f}".rjust(lebar - (lebar // 2)))
+                struk.append(
+                    "TOTAL BELANJA".ljust(lebar // 2)
+                    + f"Rp. {grand_total:,.0f}".rjust(lebar - (lebar // 2))
+                )
             elif rtype == "payment":
-                struk.append(f"PEMBAYARAN ({metode})".ljust(lebar // 2) +
-                             f"Rp. {bayar:,.0f}".rjust(lebar - (lebar // 2)))
+                struk.append(
+                    f"PEMBAYARAN ({metode})".ljust(lebar // 2)
+                    + f"Rp. {bayar:,.0f}".rjust(lebar - (lebar // 2))
+                )
                 if metode == "TUNAI":
-                    struk.append(f"KEMBALIAN".ljust(lebar // 2) +
-                                 f"Rp. {kembali:,.0f}".rjust(lebar - (lebar // 2)))
+                    struk.append(
+                        "KEMBALIAN".ljust(lebar // 2)
+                        + f"Rp. {kembali:,.0f}".rjust(lebar - (lebar // 2))
+                    )
             elif rtype == "footer_text":
                 footer1 = self.config_nota.get("info_tambahan", "")
                 footer2 = self.config_nota.get("pesan_penutup", "")
@@ -2897,28 +3604,41 @@ class KasirApp:
         text_struk_final = "\n".join(struk) + "\n\n\n\n" + PAPER_CUT
 
         try:
-            if os.name == 'nt':
+            if os.name == "nt":
                 try:
                     import win32print
                 except ImportError:
-                    messagebox.showerror("Error Printer", "Modul 'pywin32' tidak ditemukan.\nSilakan instal via: pip install pywin32")
+                    messagebox.showerror(
+                        "Error Printer",
+                        "Modul 'pywin32' tidak ditemukan.\nSilakan instal via: pip install pywin32",
+                    )
                     return
                 printer_name = win32print.GetDefaultPrinter()
                 hPrinter = win32print.OpenPrinter(printer_name)
                 try:
                     win32print.StartDocPrinter(hPrinter, 1, ("Nota Transaksi Kasir", None, "RAW"))
                     win32print.StartPagePrinter(hPrinter)
-                    win32print.WritePrinter(hPrinter, text_struk_final.encode('utf-8', errors='ignore'))
+                    win32print.WritePrinter(
+                        hPrinter, text_struk_final.encode("utf-8", errors="ignore")
+                    )
                     win32print.EndPagePrinter(hPrinter)
                     win32print.EndDocPrinter(hPrinter)
                 finally:
                     win32print.ClosePrinter(hPrinter)
             else:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="w", encoding="utf-8") as tmp:
+                with tempfile.NamedTemporaryFile(
+                    delete=False, suffix=".txt", mode="w", encoding="utf-8"
+                ) as tmp:
                     tmp.write(text_struk_final)
                     tmp_path = tmp.name
                 try:
-                    subprocess.run(["lpr", "-o", "raw", tmp_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+                    subprocess.run(
+                        ["lpr", "-o", "raw", tmp_path],
+                        check=True,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        timeout=10,
+                    )
                 except subprocess.CalledProcessError as e:
                     logging.error(f"lpr gagal dengan code {e.returncode}", exc_info=True)
                     raise
@@ -2932,17 +3652,22 @@ class KasirApp:
                         pass
         except Exception as e:
             logging.error(f"Gagal mencetak otomatis: {e}", exc_info=True)
-            messagebox.showerror("Error Printer", "Gagal mencetak struk ke printer thermal. Silakan periksa koneksi printer.")
+            messagebox.showerror(
+                "Error Printer",
+                "Gagal mencetak struk ke printer thermal. Silakan periksa koneksi printer.",
+            )
 
     def buka_popup_pembayaran(self):
         if not self.cart:
             messagebox.showwarning("Peringatan", "Keranjang belanja masih kosong!")
             return
         if not self.target_file_path or not self.combo_sheet.get():
-            messagebox.showwarning("Peringatan", "Silakan pilih File Target Output & Sheet Target terlebih dahulu!")
+            messagebox.showwarning(
+                "Peringatan", "Silakan pilih File Target Output & Sheet Target terlebih dahulu!"
+            )
             return
 
-        grand_total = sum(item['total'] for item in self.cart)
+        grand_total = sum(item["total"] for item in self.cart)
         popup = tk.Toplevel(self.root)
         popup.title("Pembayaran")
         self.center_popup(popup, 380, 440)
@@ -2951,9 +3676,11 @@ class KasirApp:
         popup.bind("<Escape>", lambda e: (popup.destroy(), self.ent_search.focus_force()))
 
         ttk.Label(popup, text="Total Transaksi:", font=("Segoe UI", 11, "bold")).pack(pady=(10, 2))
-        ttk.Label(popup, text=f"Rp. {grand_total:,.0f}", font=("Segoe UI", 16, "bold"), foreground="blue").pack(pady=(0, 5))
+        ttk.Label(
+            popup, text=f"Rp. {grand_total:,.0f}", font=("Segoe UI", 16, "bold"), foreground="blue"
+        ).pack(pady=(0, 5))
 
-        ada_diskon = any(item['diskon'] > 0 for item in self.cart)
+        ada_diskon = any(item["diskon"] > 0 for item in self.cart)
         frame_member_pay = ttk.LabelFrame(popup, text=" Catatan Member ")
         frame_member_pay.pack(fill="x", padx=30, pady=5)
         ent_catatan_pay = ttk.Entry(frame_member_pay, font=("Segoe UI", 10))
@@ -2971,7 +3698,12 @@ class KasirApp:
         ttk.Label(frame_tunai_input, text="Nominal Bayar (Rp):").pack(anchor="w", pady=(5, 2))
         ent_bayar = ttk.Entry(frame_tunai_input, font=("Segoe UI", 11, "bold"))
         ent_bayar.pack(fill="x")
-        lbl_kembalian = ttk.Label(frame_tunai_input, text="Kembalian: Rp. 0", font=("Segoe UI", 10, "bold"), foreground="green")
+        lbl_kembalian = ttk.Label(
+            frame_tunai_input,
+            text="Kembalian: Rp. 0",
+            font=("Segoe UI", 10, "bold"),
+            foreground="green",
+        )
         lbl_kembalian.pack(anchor="w", pady=(5, 0))
 
         def hitung_kembalian(event=None):
@@ -2997,8 +3729,16 @@ class KasirApp:
 
         row_radio = ttk.Frame(popup)
         row_radio.pack(fill="x", padx=30, pady=5)
-        ttk.Radiobutton(row_radio, text="TUNAI", variable=pay_var, value="TUNAI", command=toggle_pembayaran).pack(side="left", padx=10)
-        ttk.Radiobutton(row_radio, text="NON TUNAI", variable=pay_var, value="NON TUNAI", command=toggle_pembayaran).pack(side="left", padx=10)
+        ttk.Radiobutton(
+            row_radio, text="TUNAI", variable=pay_var, value="TUNAI", command=toggle_pembayaran
+        ).pack(side="left", padx=10)
+        ttk.Radiobutton(
+            row_radio,
+            text="NON TUNAI",
+            variable=pay_var,
+            value="NON TUNAI",
+            command=toggle_pembayaran,
+        ).pack(side="left", padx=10)
         toggle_pembayaran()
 
         def simpan_dan_proses(event=None):
@@ -3006,7 +3746,9 @@ class KasirApp:
             if ada_diskon:
                 catatan_val = ent_catatan_pay.get().strip()
                 if not catatan_val:
-                    messagebox.showwarning("Peringatan", "Catatan Member wajib diisi karena ada diskon!", parent=popup)
+                    messagebox.showwarning(
+                        "Peringatan", "Catatan Member wajib diisi karena ada diskon!", parent=popup
+                    )
                     ent_catatan_pay.focus_force()
                     return
             metode = pay_var.get()
@@ -3017,7 +3759,9 @@ class KasirApp:
             if metode == "TUNAI":
                 raw_bayar = ent_bayar.get().replace(".", "").replace(",", "").strip()
                 if not raw_bayar.isdigit() or float(raw_bayar) < grand_total:
-                    messagebox.showwarning("Peringatan", "Nominal pembayaran Tunai kurang!", parent=popup)
+                    messagebox.showwarning(
+                        "Peringatan", "Nominal pembayaran Tunai kurang!", parent=popup
+                    )
                     return
                 bayar_val = float(raw_bayar)
                 tunai_val = grand_total
@@ -3033,17 +3777,23 @@ class KasirApp:
                 no_trx_num = self.no_trx_counter
                 timestamp_str = datetime.now().strftime("%H:%M:%S")
                 currency_format = '"Rp" #,##0'
-                thin_border = Border(left=Side(style='thin', color='000000'), right=Side(style='thin', color='000000'), top=Side(style='thin', color='000000'), bottom=Side(style='thin', color='000000'))
+                thin_border = Border(
+                    left=Side(style="thin", color="000000"),
+                    right=Side(style="thin", color="000000"),
+                    top=Side(style="thin", color="000000"),
+                    bottom=Side(style="thin", color="000000"),
+                )
                 all_used_cols = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]
                 for idx_item, item in enumerate(self.cart):
                     max_r = ws.max_row + 1
-                    if idx_item == 0: ws[f"A{max_r}"] = no_trx_num
-                    ws[f"B{max_r}"] = item['barcode']
-                    ws[f"C{max_r}"] = item['judul']
-                    ws[f"D{max_r}"] = item['jumlah']
-                    ws[f"E{max_r}"] = item['harga_akhir']
+                    if idx_item == 0:
+                        ws[f"A{max_r}"] = no_trx_num
+                    ws[f"B{max_r}"] = item["barcode"]
+                    ws[f"C{max_r}"] = item["judul"]
+                    ws[f"D{max_r}"] = item["jumlah"]
+                    ws[f"E{max_r}"] = item["harga_akhir"]
                     ws[f"E{max_r}"].number_format = currency_format
-                    ws[f"F{max_r}"] = item['total']
+                    ws[f"F{max_r}"] = item["total"]
                     ws[f"F{max_r}"].number_format = currency_format
                     if idx_item == 0:
                         if metode == "TUNAI":
@@ -3052,9 +3802,10 @@ class KasirApp:
                         else:
                             ws[f"H{max_r}"] = nontunai_val
                             ws[f"H{max_r}"].number_format = currency_format
-                    ws[f"I{max_r}"] = item['diskon']
+                    ws[f"I{max_r}"] = item["diskon"]
                     ws[f"J{max_r}"] = catatan_val if ada_diskon else ""
-                    if idx_item == 0: ws[f"K{max_r}"] = timestamp_str
+                    if idx_item == 0:
+                        ws[f"K{max_r}"] = timestamp_str
                     ws[f"L{max_r}"] = ""
                     for col_l in all_used_cols:
                         ws[f"{col_l}{max_r}"].border = thin_border
@@ -3062,8 +3813,17 @@ class KasirApp:
                 self.wb_target.save(self.target_file_path)
                 self.cached_report_df = None
                 self.cached_sheet_name = None
-                self.cetak_nota_thermal_80mm_custom(no_trx_num, metode, bayar_val, kembali_val, catatan_val if ada_diskon else "", is_reprint=False)
-                messagebox.showinfo("Sukses", f"Transaksi No. {no_trx_num} berhasil disimpan & dicetak!")
+                self.cetak_nota_thermal_80mm_custom(
+                    no_trx_num,
+                    metode,
+                    bayar_val,
+                    kembali_val,
+                    catatan_val if ada_diskon else "",
+                    is_reprint=False,
+                )
+                messagebox.showinfo(
+                    "Sukses", f"Transaksi No. {no_trx_num} berhasil disimpan & dicetak!"
+                )
                 self.cart.clear()
                 self.update_tabel_keranjang()
                 self.hitung_nomor_transaksi_berikutnya()
@@ -3071,10 +3831,18 @@ class KasirApp:
                 self.ent_search.focus_force()
                 self.refresh_data_laporan()
             except Exception as e:
-                self._show_safe_error(popup, "Error Simpan", "Gagal menyimpan transaksi. Pastikan file Excel tidak sedang dibuka di aplikasi lain.", exception=e, context="simpan_dan_proses")
+                self._show_safe_error(
+                    popup,
+                    "Error Simpan",
+                    "Gagal menyimpan transaksi. Pastikan file Excel tidak sedang dibuka di aplikasi lain.",  # noqa: E501
+                    exception=e,
+                    context="simpan_dan_proses",
+                )
 
         popup.bind("<Return>", simpan_dan_proses)
-        ttk.Button(popup, text="SIMPAN & CETAK NOTA (ENTER)", command=simpan_dan_proses).pack(side="bottom", pady=10)
+        ttk.Button(popup, text="SIMPAN & CETAK NOTA (ENTER)", command=simpan_dan_proses).pack(
+            side="bottom", pady=10
+        )
 
 
 if __name__ == "__main__":
