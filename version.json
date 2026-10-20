@@ -1,6 +1,6 @@
 {
-    "version": "v1.9.1",
+    "version": "v1.9.2",
     "download_url": "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/app_scan.py",
-    "sha256": "0196c48010c37bcf41161ef71378da78aaa1b8ab13b4f7d706779b35c2892226",
-    "changelog": "Takom Kasir v1.9.1 - Merge hybrid transaksi Supabase (transaksi+detail), launcher verifikasi sha256, kredensial via .env"
+    "sha256": "1cd0ae3dd6d4ee4fb8f8c00f875038f80d94a8eba329e7207bba7679fa5134ca",
+    "changelog": "Takom Kasir v1.9.2 - RBAC login PIN (kasir/admin/owner) + audit, proteksi harga/master/setoran, integrasi kas_setoran, skema transaksi baru"
 }

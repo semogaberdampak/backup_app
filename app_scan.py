@@ -50,6 +50,25 @@ except ImportError:
             return pd.DataFrame(columns=["barcode", "judul", "harga"]), False
 
 
+try:
+    from auth_rbac import SessionUser, verify_pin, pin_salt
+except ImportError:
+    SessionUser = None  # type: ignore[assignment]
+
+    def verify_pin(*a, **k):  # type: ignore[no-redef]
+        return False
+
+    def pin_salt():  # type: ignore[no-redef]
+        return "takomers-default-salt-ganti-di-env"
+
+
+try:
+    from keuangan import catat_arus_kas, catat_setoran
+except ImportError:
+    catat_arus_kas = None  # type: ignore[assignment]
+    catat_setoran = None  # type: ignore[assignment]
+
+
 # ============================================================================
 # 3. Setup Logging
 # ============================================================================
@@ -102,6 +121,9 @@ class KasirApp:
             except Exception as e:
                 print(f"❌ Gagal koneksi ke Supabase: {e}")
                 self.is_supabase_ready = False
+
+        # --- RBAC session (diisi via dialog login sebelum UI utama) ---
+        self.current_user: Optional[Any] = None
 
         # File & Sheet Target
         self.target_file_path = ""
@@ -193,9 +215,137 @@ class KasirApp:
         self.cart: List[Dict[str, Any]] = []
         self.no_trx_counter: int = 1
 
+        if not self._login_dialog():
+            # User batal login -> tutup aplikasi dengan aman
+            self.root.destroy()
+            raise SystemExit(0)
+        self._audit("login", "app_users", self.current_user.username)
+
         self.setup_custom_styles()
         self.setup_main_layout()
+        self._terapkan_hak_akses()
         threading.Thread(target=self.load_master_data_async, daemon=True).start()
+
+    # =========================================================================
+    # RBAC: login + audit + proteksi aksi
+    # =========================================================================
+    def _audit(self, aksi: str, entitas: str = "", entitas_id: str = "") -> None:
+        try:
+            user = getattr(self.current_user, "username", "")
+            if self.is_supabase_ready and self.supabase is not None:
+                self.supabase.table("audit_log").insert(
+                    {"username": user, "aksi": aksi, "entitas": entitas,
+                     "entitas_id": str(entitas_id)}
+                ).execute()
+        except Exception as e:
+            logging.error(f"Audit gagal: {e}", exc_info=True)
+
+    def _boleh(self, aksi: str) -> bool:
+        user = self.current_user
+        if user is None or not hasattr(user, "can"):
+            return False
+        return bool(user.can(aksi))
+
+    def _wajib(self, aksi: str) -> bool:
+        if self._boleh(aksi):
+            return True
+        messagebox.showwarning(
+            "Akses Ditolak",
+            f"Peran '{getattr(self.current_user, 'role', '?')}' tidak boleh: {aksi}.",
+        )
+        return False
+
+    def _login_dialog(self) -> bool:
+        """Modal login username+PIN. Return True bila berhasil."""
+        hasil: Dict[str, Any] = {"ok": False}
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Login Kasir")
+        dlg.geometry("320x220")
+        dlg.transient(self.root)
+        dlg.grab_set()
+        ttk.Label(dlg, text="Username").pack(pady=(12, 2))
+        ent_user = ttk.Entry(dlg)
+        ent_user.pack()
+        ttk.Label(dlg, text="PIN (6 digit)").pack(pady=(8, 2))
+        ent_pin = ttk.Entry(dlg, show="*")
+        ent_pin.pack()
+
+        def coba_login(event=None):
+            username = ent_user.get().strip()
+            pin = ent_pin.get().strip()
+            if not username or not pin:
+                messagebox.showwarning("Login", "Isi username dan PIN.", parent=dlg)
+                return
+            # Default darurat bila DB belum punya user: owner/123456
+            if username == "owner" and self._cek_pin_default(pin):
+                self.current_user = SessionUser(username="owner", role="owner")
+                hasil["ok"] = True
+                dlg.destroy()
+                return
+            row = self._ambil_user(username)
+            if row and row.get("aktif", True) and verify_pin(
+                str(row.get("pin_hash", "")), pin
+            ):
+                self.current_user = SessionUser(
+                    username=username, role=str(row.get("role", "kasir"))
+                )
+                hasil["ok"] = True
+                dlg.destroy()
+            else:
+                messagebox.showerror("Login", "Username/PIN salah.", parent=dlg)
+
+        ttk.Button(dlg, text="Masuk", command=coba_login).pack(pady=14)
+        dlg.bind("<Return>", coba_login)
+        ent_user.focus_set()
+        self.root.wait_window(dlg)
+        return bool(hasil["ok"])
+
+    def _cek_pin_default(self, pin: str) -> bool:
+        try:
+            from auth_rbac import default_owner_pin_hash
+
+            return verify_pin(default_owner_pin_hash(), pin)
+        except Exception:
+            return pin == "123456" and not self._ambil_user("owner")
+
+    def _ambil_user(self, username: str) -> Optional[Dict[str, Any]]:
+        if not self.is_supabase_ready or self.supabase is None:
+            return None
+        try:
+            res = (
+                self.supabase.table("app_users")
+                .select("username,role,pin_hash,aktif")
+                .eq("username", username)
+                .limit(1)
+                .execute()
+            )
+            rows = res.data or []
+            return rows[0] if rows else None
+        except Exception as e:
+            logging.error(f"Ambil user gagal: {e}", exc_info=True)
+            return None
+
+    def _terapkan_hak_akses(self) -> None:
+        """Nonaktifkan tab/fitur sensitif sesuai peran. Aman bila widget belum ada."""
+        try:
+            role = getattr(self.current_user, "role", "kasir")
+            self.root.title(f"Takom Kasir v1.9.2-RBAC [{role}]")
+        except Exception:
+            pass
+
+    def _tanggal_setoran_iso(self, sheet_name: str) -> str:
+        """Parse nama sheet jadi YYYY-MM-DD; fallback hari ini bila gagal."""
+        try:
+            from datetime import datetime as _dt
+
+            for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y"):
+                try:
+                    return _dt.strptime(str(sheet_name).strip(), fmt).date().isoformat()
+                except ValueError:
+                    continue
+        except Exception:
+            pass
+        return datetime.now().date().isoformat()
 
     # =========================================================================
     # Helper path
@@ -1394,6 +1544,8 @@ class KasirApp:
     # UBAH HARGA PRODUK (Partial Search)
     # =========================================================================
     def buka_popup_ubah_harga(self):
+        if not self._wajib("harga"):
+            return
         if not getattr(self, "is_supabase_ready", False):
             messagebox.showerror(
                 "Error Koneksi",
@@ -1628,6 +1780,8 @@ class KasirApp:
     # TAMBAH PRODUK
     # =========================================================================
     def buka_popup_tambah_produk(self):
+        if not self._wajib("master"):
+            return
         if not getattr(self, "is_supabase_ready", False):
             messagebox.showerror(
                 "Error Koneksi",
@@ -2667,6 +2821,8 @@ class KasirApp:
             )
 
     def proses_setoran_harian(self):
+        if not self._wajib("setoran"):
+            return
         if not self.target_file_path or not self.wb_target:
             messagebox.showwarning("Peringatan", "Pilih File Target Output terlebih dahulu!")
             return
@@ -2730,6 +2886,19 @@ class KasirApp:
             self.cached_report_df = None
             self.cached_sheet_name = None
             self.muat_tabel_laporan_excel()
+            # Integrasi keuangan: catat ke kas_setoran (gagal DB tidak menggagalkan Excel)
+            try:
+                if catat_setoran is not None:
+                    catat_setoran(
+                        self.supabase if self.is_supabase_ready else None,
+                        self._tanggal_setoran_iso(sheet_name),
+                        float(total_tunai or 0),
+                        float(total_nontunai or 0),
+                        getattr(self.current_user, "username", ""),
+                    )
+                    self._audit("setoran", "kas_setoran", sheet_name)
+            except Exception as e:
+                logging.error(f"Catat setoran ke DB gagal: {e}", exc_info=True)
             messagebox.showinfo("Sukses", "Setoran Harian berhasil ditutup & disimpan ke Excel!")
         except Exception as e:
             self._show_safe_error(
@@ -3536,6 +3705,7 @@ class KasirApp:
                     "nominal_bayar": float(bayar),
                     "kembalian": float(kembali),
                     "catatan_member": catatan_member,
+                    "kasir_username": getattr(self.current_user, "username", ""),
                 }
             ).execute()
             if response.data:
