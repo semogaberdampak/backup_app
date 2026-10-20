@@ -1,6 +1,6 @@
 {
-    "version": "v1.9.2",
+    "version": "v1.9.3",
     "download_url": "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/app_scan.py",
-    "sha256": "1cd0ae3dd6d4ee4fb8f8c00f875038f80d94a8eba329e7207bba7679fa5134ca",
-    "changelog": "Takom Kasir v1.9.2 - RBAC login PIN (kasir/admin/owner) + audit, proteksi harga/master/setoran, integrasi kas_setoran, skema transaksi baru"
+    "sha256": "15d51deca4cb3002fff9197dafac038bb248b5900c2837b9a8d7216c8cfeda1f",
+    "changelog": "Takom Kasir v1.9.3 - Tab Admin & Keuangan (kelola user, arus kas, audit), proteksi tab per peran"
 }

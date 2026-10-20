@@ -326,10 +326,23 @@ class KasirApp:
             return None
 
     def _terapkan_hak_akses(self) -> None:
-        """Nonaktifkan tab/fitur sensitif sesuai peran. Aman bila widget belum ada."""
+        """Sesuaikan toolbar + judul sesuai peran. Kasir paling ketat."""
         try:
             role = getattr(self.current_user, "role", "kasir")
-            self.root.title(f"Takom Kasir v1.9.2-RBAC [{role}]")
+            user = getattr(self.current_user, "username", "?")
+            self.root.title(f"Takom Kasir v1.9.3 [{role}] - {user}")
+            # Kasir: sembunyikan tombol sensitif (backend tetap diproteksi _wajib)
+            if role == "kasir":
+                for btn in (
+                    getattr(self, "btn_ubah_harga", None),
+                    getattr(self, "btn_tambah_produk", None),
+                    getattr(self, "btn_admin", None),
+                ):
+                    try:
+                        if btn is not None:
+                            btn.pack_forget()
+                    except Exception:
+                        pass
         except Exception:
             pass
 
@@ -639,6 +652,15 @@ class KasirApp:
         )
         self.btn_laporan.pack(side=tk.LEFT, padx=4, pady=10)
 
+        self.btn_admin = self.create_rounded_button(
+            self.toolbar_frame,
+            "🛡️ Admin & Keuangan",
+            lambda: self.switch_tab("admin"),
+            "#2c3e50",
+            "white",
+        )
+        self.btn_admin.pack(side=tk.LEFT, padx=4, pady=10)
+
         # === SEPARATOR ===
         sep = tk.Frame(self.toolbar_frame, bg="#34495e", width=2)
         sep.pack(side=tk.LEFT, padx=15, pady=10, fill="y")
@@ -674,10 +696,12 @@ class KasirApp:
         self.frame_transaksi = ttk.Frame(self.container)
         self.frame_data_master = ttk.Frame(self.container)
         self.frame_laporan = ttk.Frame(self.container)
+        self.frame_admin = ttk.Frame(self.container)
 
         self.setup_halaman_transaksi(self.frame_transaksi)
         self.setup_halaman_data_master(self.frame_data_master)
         self.setup_halaman_laporan(self.frame_laporan)
+        self.setup_halaman_admin(self.frame_admin)
 
         self.switch_tab("transaksi")
         self.setup_global_keyboard()
@@ -686,23 +710,248 @@ class KasirApp:
         self.frame_transaksi.pack_forget()
         self.frame_data_master.pack_forget()
         self.frame_laporan.pack_forget()
+        self.frame_admin.pack_forget()
 
         self.btn_transaksi.draw("#2c3e50", "white")
         self.btn_data_master.draw("#2c3e50", "white")
         self.btn_laporan.draw("#2c3e50", "white")
+        self.btn_admin.draw("#2c3e50", "white")
 
         if tab_name == "transaksi":
             self.frame_transaksi.pack(fill=tk.BOTH, expand=True)
             self.btn_transaksi.draw("#1abc9c", "white")
             self.ent_search.focus_force()
         elif tab_name == "data_master":
+            if not self._wajib("master"):
+                return self.switch_tab("transaksi")
             self.frame_data_master.pack(fill=tk.BOTH, expand=True)
             self.btn_data_master.draw("#1abc9c", "white")
             self.refresh_data_master_view()
         elif tab_name == "laporan":
+            if not self._wajib("laporan"):
+                return self.switch_tab("transaksi")
             self.frame_laporan.pack(fill=tk.BOTH, expand=True)
             self.btn_laporan.draw("#1abc9c", "white")
             self.refresh_data_laporan()
+        elif tab_name == "admin":
+            if not self._wajib("setoran"):
+                return self.switch_tab("transaksi")
+            self.frame_admin.pack(fill=tk.BOTH, expand=True)
+            self.btn_admin.draw("#1abc9c", "white")
+            self.refresh_admin_view()
+
+    # =========================================================================
+    # HALAMAN ADMIN & KEUANGAN (v1.9.3)
+    # =========================================================================
+    def setup_halaman_admin(self, parent):
+        ttk.Label(parent, text="Admin & Keuangan",
+                  font=("Segoe UI", 13, "bold")).pack(pady=(10, 4))
+        self.admin_lbl_info = ttk.Label(parent, text="", font=("Segoe UI", 9, "italic"))
+        self.admin_lbl_info.pack()
+        nb = ttk.Notebook(parent)
+        nb.pack(fill="both", expand=True, padx=10, pady=8)
+        self.tab_user = ttk.Frame(nb)
+        self.tab_kas = ttk.Frame(nb)
+        self.tab_audit = ttk.Frame(nb)
+        nb.add(self.tab_user, text="Users")
+        nb.add(self.tab_kas, text="Arus Kas")
+        nb.add(self.tab_audit, text="Audit")
+        self.tree_users = ttk.Treeview(self.tab_user, columns=("u", "r", "a"),
+                                       show="headings", style="Unified.Treeview")
+        for c, t in (("u", "Username"), ("r", "Role"), ("a", "Aktif")):
+            self.tree_users.heading(c, text=t)
+        self.tree_users.pack(fill="both", expand=True, padx=6, pady=6)
+        fr = ttk.Frame(self.tab_user)
+        fr.pack(pady=4)
+        ttk.Button(fr, text="Tambah", command=self._user_tambah).pack(side="left", padx=4)
+        ttk.Button(fr, text="Reset PIN", command=self._user_reset_pin).pack(side="left", padx=4)
+        ttk.Button(fr, text="Aktif/Nonaktif", command=self._user_toggle).pack(side="left", padx=4)
+        self.tree_kas = ttk.Treeview(self.tab_kas,
+                                     columns=("t", "j", "k", "n", "ket"),
+                                     show="headings", style="Unified.Treeview")
+        for c, t in (("t", "Tanggal"), ("j", "Jenis"), ("k", "Kategori"),
+                     ("n", "Nominal"), ("ket", "Keterangan")):
+            self.tree_kas.heading(c, text=t)
+        self.tree_kas.pack(fill="both", expand=True, padx=6, pady=6)
+        fr2 = ttk.Frame(self.tab_kas)
+        fr2.pack(pady=4)
+        ttk.Button(fr2, text="Pemasukan",
+                   command=lambda: self._kas_tambah("masuk")).pack(side="left", padx=4)
+        ttk.Button(fr2, text="Pengeluaran",
+                   command=lambda: self._kas_tambah("keluar")).pack(side="left", padx=4)
+        self.tree_audit = ttk.Treeview(self.tab_audit,
+                                       columns=("w", "u", "a", "e"),
+                                       show="headings", style="Unified.Treeview")
+        for c, t in (("w", "Waktu"), ("u", "User"), ("a", "Aksi"), ("e", "Entitas")):
+            self.tree_audit.heading(c, text=t)
+        self.tree_audit.pack(fill="both", expand=True, padx=6, pady=6)
+
+    def refresh_admin_view(self):
+        self._muat_users()
+        self._muat_kas()
+        self._muat_audit()
+        try:
+            self.admin_lbl_info.config(
+                text=f"Login: {self.current_user.username} ({self.current_user.role})")
+        except Exception:
+            pass
+
+    def _muat_users(self):
+        try:
+            for i in self.tree_users.get_children():
+                self.tree_users.delete(i)
+            if not self.is_supabase_ready:
+                return
+            rows = (self.supabase.table("app_users")
+                    .select("username,role,aktif").order("username")
+                    .execute().data or [])
+            for r in rows:
+                self.tree_users.insert("", "end", values=(
+                    r.get("username"), r.get("role"),
+                    "Ya" if r.get("aktif") else "Tidak"))
+        except Exception as e:
+            logging.error(f"Muat users gagal: {e}", exc_info=True)
+
+    def _muat_kas(self):
+        try:
+            for i in self.tree_kas.get_children():
+                self.tree_kas.delete(i)
+            if not self.is_supabase_ready:
+                return
+            rows = (self.supabase.table("arus_kas").select(
+                "tanggal,jenis,kategori,nominal,keterangan")
+                .order("created_at", desc=True).limit(100)
+                .execute().data or [])
+            for r in rows:
+                self.tree_kas.insert("", "end", values=(
+                    r.get("tanggal"), r.get("jenis"), r.get("kategori"),
+                    r.get("nominal"), (r.get("keterangan") or "")[:40]))
+        except Exception as e:
+            logging.error(f"Muat kas gagal: {e}", exc_info=True)
+
+    def _muat_audit(self):
+        try:
+            for i in self.tree_audit.get_children():
+                self.tree_audit.delete(i)
+            if not self.is_supabase_ready:
+                return
+            rows = (self.supabase.table("audit_log").select(
+                "created_at,username,aksi,entitas")
+                .order("created_at", desc=True).limit(100)
+                .execute().data or [])
+            for r in rows:
+                self.tree_audit.insert("", "end", values=(
+                    str(r.get("created_at"))[:19], r.get("username"),
+                    r.get("aksi"), r.get("entitas")))
+        except Exception as e:
+            logging.error(f"Muat audit gagal: {e}", exc_info=True)
+
+    def _user_tambah(self):
+        if not self._wajib("users"):
+            return
+        from auth_rbac import hash_pin, pin_salt
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Tambah User")
+        dlg.geometry("300x280")
+        ttk.Label(dlg, text="Username").pack()
+        e_u = ttk.Entry(dlg)
+        e_u.pack()
+        ttk.Label(dlg, text="PIN").pack()
+        e_p = ttk.Entry(dlg, show="*")
+        e_p.pack()
+        ttk.Label(dlg, text="Role").pack()
+        cb = ttk.Combobox(dlg, values=["kasir", "admin", "owner"], state="readonly")
+        cb.set("kasir")
+        cb.pack()
+
+        def simpan():
+            u, p, r = e_u.get().strip(), e_p.get().strip(), cb.get()
+            if not u or not p:
+                messagebox.showwarning("User", "Lengkapi username+PIN.", parent=dlg)
+                return
+            try:
+                self.supabase.table("app_users").insert(
+                    {"username": u, "pin_hash": hash_pin(p, pin_salt()), "role": r}
+                ).execute()
+                self._audit("user_tambah", "app_users", u)
+                dlg.destroy()
+                self._muat_users()
+            except Exception as e:
+                self._show_safe_error(dlg, "Gagal", "Username mungkin sudah ada.",
+                                      exception=e, context="user_tambah")
+        ttk.Button(dlg, text="Simpan", command=simpan).pack(pady=10)
+
+    def _user_reset_pin(self):
+        if not self._wajib("users"):
+            return
+        from auth_rbac import hash_pin, pin_salt
+        sel = self.tree_users.selection()
+        if not sel:
+            messagebox.showwarning("User", "Pilih user dulu.")
+            return
+        username = self.tree_users.item(sel[0])["values"][0]
+        dlg = tk.Toplevel(self.root)
+        dlg.title(f"Reset PIN {username}")
+        e_p = ttk.Entry(dlg, show="*")
+        e_p.pack(padx=20, pady=10)
+
+        def simpan():
+            try:
+                self.supabase.table("app_users").update(
+                    {"pin_hash": hash_pin(e_p.get().strip(), pin_salt())}
+                ).eq("username", username).execute()
+                self._audit("user_reset_pin", "app_users", username)
+                dlg.destroy()
+            except Exception as e:
+                self._show_safe_error(dlg, "Gagal", "Reset PIN gagal.",
+                                      exception=e, context="user_reset_pin")
+        ttk.Button(dlg, text="Simpan", command=simpan).pack(pady=6)
+
+    def _user_toggle(self):
+        if not self._wajib("users"):
+            return
+        sel = self.tree_users.selection()
+        if not sel:
+            return
+        vals = self.tree_users.item(sel[0])["values"]
+        try:
+            baru = not (str(vals[2]) == "Ya")
+            self.supabase.table("app_users").update(
+                {"aktif": baru}).eq("username", vals[0]).execute()
+            self._audit("user_toggle", "app_users", vals[0])
+            self._muat_users()
+        except Exception as e:
+            logging.error(f"Toggle user gagal: {e}", exc_info=True)
+
+    def _kas_tambah(self, jenis: str):
+        if not self._wajib("setoran"):
+            return
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Pemasukan" if jenis == "masuk" else "Pengeluaran")
+        ttk.Label(dlg, text="Kategori").pack()
+        e_k = ttk.Entry(dlg)
+        e_k.pack()
+        ttk.Label(dlg, text="Nominal").pack()
+        e_n = ttk.Entry(dlg)
+        e_n.pack()
+        ttk.Label(dlg, text="Keterangan").pack()
+        e_c = ttk.Entry(dlg)
+        e_c.pack()
+
+        def simpan():
+            try:
+                from keuangan import catat_arus_kas
+                catat_arus_kas(self.supabase if self.is_supabase_ready else None,
+                               jenis, e_k.get().strip(), float(e_n.get() or 0),
+                               e_c.get().strip(),
+                               getattr(self.current_user, "username", ""))
+                self._audit("arus_kas", "arus_kas", f"{jenis}:{e_k.get().strip()}")
+                dlg.destroy()
+                self._muat_kas()
+            except Exception as e:
+                self._show_safe_error(dlg, "Gagal", "Nominal harus angka.",
+                                      exception=e, context="kas_tambah")
+        ttk.Button(dlg, text="Simpan", command=simpan).pack(pady=10)
 
     # =========================================================================
     # HALAMAN DATA MASTER
