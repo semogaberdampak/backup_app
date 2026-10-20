@@ -1,3 +1,6 @@
+# VIRTUAL ENVIRONMENT
+.venv/
+
 # KREDENSIAL & FILE SENSITIF
 .env
 .env.local

@@ -108,11 +108,58 @@ def setup_app_logging() -> None:
         )
 
 
+# ============================================================================
+# 3b. PREFS LOGIN — ingat username terakhir (cross-platform: Windows & Linux)
+# ============================================================================
+LOGIN_PREFS_FILE: pathlib.Path = pathlib.Path.home() / ".takom_kasir" / "login_prefs.json"
+
+
+def load_login_prefs() -> Dict[str, Any]:
+    """Muat preferensi dialog login (checkbox ingat username terakhir)."""
+    try:
+        with open(LOGIN_PREFS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            return {
+                "remember_username": bool(data.get("remember_username", True)),
+                "last_username": str(data.get("last_username", "") or ""),
+            }
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        logging.error(f"Gagal muat login prefs: {e}", exc_info=True)
+    return {"remember_username": True, "last_username": ""}
+
+
+def save_login_prefs(remember: bool, username: str) -> None:
+    """Simpan preferensi dialog login; username dikosongkan bila checkbox tidak dicentang."""
+    try:
+        LOGIN_PREFS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "remember_username": bool(remember),
+            "last_username": str(username) if remember and username else "",
+        }
+        with open(LOGIN_PREFS_FILE, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logging.error(f"Gagal simpan login prefs: {e}", exc_info=True)
+
+
 class KasirApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root: tk.Tk = root
         self.root.title("Takom Kasir v1.9.5 - RBAC Role Dinamis & Hak Akses Checklist")
-        self.root.state("zoomed")
+        # Maximize window secara cross-platform:
+        # - Windows: state("zoomed")
+        # - Linux (X11/GNOME): attributes("-zoomed")
+        # - Fallback lainnya: geometry default yang besar
+        try:
+            self.root.state("zoomed")
+        except tk.TclError:
+            try:
+                self.root.attributes("-zoomed", True)
+            except tk.TclError:
+                self.root.geometry("1280x800")
         try:
             self.root.iconbitmap("logo.ico")
         except Exception:
@@ -330,7 +377,27 @@ class KasirApp:
             return e
 
         field_label("Username")
-        ent_user = field_entry(body)
+        # Baris username: input + checkbox "Ingat username" di sampingnya
+        user_wrap = tk.Frame(body, bg=C_BG)
+        user_wrap.pack(fill="x")
+        prefs = load_login_prefs()
+        remember_var = tk.BooleanVar(value=prefs["remember_username"])
+        ent_user = tk.Entry(
+            user_wrap, font=("Segoe UI", 13), bg=C_SURFACE, fg="#1a1a2e",
+            relief="flat", bd=9, insertbackground="#1a1a2e",
+            highlightthickness=2, highlightcolor=C_ACCENT,
+            highlightbackground="#dfe4e8",
+        )
+        ent_user.pack(side="left", fill="x", expand=True, pady=(4, 0))
+        chk_ingat = tk.Checkbutton(
+            user_wrap, text="Ingat\nusername", variable=remember_var,
+            bg=C_BG, fg=C_DARK, activebackground=C_BG, activeforeground=C_ACCENT,
+            selectcolor=C_SURFACE, font=("Segoe UI", 8), justify="left",
+            anchor="w", cursor="hand2", highlightthickness=0, bd=0,
+        )
+        chk_ingat.pack(side="left", padx=(8, 0), pady=(4, 0))
+        if prefs["last_username"]:
+            ent_user.insert(0, prefs["last_username"])
         field_label("PIN")
         pin_wrap = tk.Frame(body, bg=C_BG)
         pin_wrap.pack(fill="x")
@@ -372,12 +439,14 @@ class KasirApp:
                 str(row.get("pin_hash", "")), pin
             ):
                 self._buat_sesi(username, str(row.get("role", "kasir")))
+                hasil["username"] = username
                 hasil["ok"] = True
                 dlg.destroy()
                 return
             # Default darurat owner/123456 — hanya bila DB belum punya user owner
             if username == "owner" and row is None and self._cek_pin_default(pin):
                 self._buat_sesi("owner", "owner")
+                hasil["username"] = "owner"
                 hasil["ok"] = True
                 dlg.destroy()
                 return
@@ -417,6 +486,9 @@ class KasirApp:
         ent_user.focus_set()
         ent_user.select_range(0, "end")
         self.root.wait_window(dlg)
+        if hasil["ok"]:
+            # Simpan username terakhir sesuai posisi checkbox "Ingat username"
+            save_login_prefs(bool(remember_var.get()), str(hasil.get("username", "")))
         return bool(hasil["ok"])
 
     def _cek_pin_default(self, pin: str) -> bool:
