@@ -81,6 +81,7 @@ def check_and_update() -> None:
                 save_local_version(remote_ver)
                 messagebox.showinfo(
                     "Sukses", "Patch berhasil didownload & diverifikasi! Aplikasi akan dijalankan."
+
                 )
         else:
             print("Aplikasi sudah menggunakan versi paling mutakhir.")
