@@ -3508,6 +3508,73 @@ class KasirApp:
             self._geser_fokus(tv, -1)
         self._tree_nav_pos[str(tv)] = idx
 
+    # =========================================================================
+    # FUNGSI SUPABASE - HYBRID MODE (FASE 1, hasil merge dari v1.8 lokal)
+    # Menyimpan transaksi + detail ke tabel 'transaksi' / 'detail_transaksi'.
+    # Aman: gagal sync tidak menggagalkan simpan Excel/cetak (di-wrap try).
+    # =========================================================================
+    def simpan_transaksi_ke_supabase(
+        self,
+        no_trx,
+        metode,
+        bayar,
+        kembali,
+        catatan_member,
+        sheet_name,
+        total_belanja,
+    ):
+        """Menyimpan data transaksi ke tabel 'transaksi' di Supabase."""
+        if not self.is_supabase_ready:
+            return None
+        try:
+            response = self.supabase.table("transaksi").insert(
+                {
+                    "no_trx": int(no_trx),
+                    "sheet_name": sheet_name,
+                    "total_belanja": float(total_belanja),
+                    "metode_bayar": metode,
+                    "nominal_bayar": float(bayar),
+                    "kembalian": float(kembali),
+                    "catatan_member": catatan_member,
+                }
+            ).execute()
+            if response.data:
+                trx_id = response.data[0]["id"]
+                logging.info(f"Transaksi #{no_trx} tersimpan ke Supabase (ID: {trx_id})")
+                return trx_id
+            logging.error(f"Gagal menyimpan transaksi #{no_trx}: no data returned")
+            return None
+        except Exception as e:
+            logging.error(f"Error simpan transaksi ke Supabase: {e}", exc_info=True)
+            return None
+
+    def simpan_detail_transaksi_ke_supabase(self, trx_id, items):
+        """Bulk-insert detail item ke tabel 'detail_transaksi'."""
+        if not self.is_supabase_ready or not trx_id:
+            return False
+        try:
+            detail_data = [
+                {
+                    "trx_id": trx_id,
+                    "barcode": str(item.get("barcode", "")),
+                    "judul": str(item.get("judul", "")),
+                    "jumlah": int(item.get("jumlah", 0)),
+                    "harga_akhir": float(item.get("harga_akhir", 0)),
+                    "total": float(item.get("total", 0)),
+                    "diskon": float(item.get("diskon", 0)),
+                }
+                for item in items
+            ]
+            response = self.supabase.table("detail_transaksi").insert(detail_data).execute()
+            if response.data:
+                logging.info(f"{len(detail_data)} item detail tersimpan ke Supabase")
+                return True
+            logging.error("Gagal menyimpan detail transaksi: no data returned")
+            return False
+        except Exception as e:
+            logging.error(f"Error simpan detail ke Supabase: {e}", exc_info=True)
+            return False
+
     def cetak_nota_thermal_80mm_custom(
         self,
         no_trx,
@@ -3818,6 +3885,22 @@ class KasirApp:
                 self.wb_target.save(self.target_file_path)
                 self.cached_report_df = None
                 self.cached_sheet_name = None
+                # HYBRID MODE (FASE 1, merge dari v1.8 lokal): sync ke Supabase,
+                # gagal sync tidak menggagalkan Excel/cetak.
+                try:
+                    trx_id = self.simpan_transaksi_ke_supabase(
+                        no_trx=no_trx_num,
+                        metode=metode,
+                        bayar=bayar_val,
+                        kembali=kembali_val,
+                        catatan_member=catatan_val if ada_diskon else "",
+                        sheet_name=sheet_name,
+                        total_belanja=grand_total,
+                    )
+                    if trx_id:
+                        self.simpan_detail_transaksi_ke_supabase(trx_id, self.cart)
+                except Exception as e:
+                    logging.error(f"Gagal sync ke Supabase (Excel tetap tersimpan): {e}", exc_info=True)
                 self.cetak_nota_thermal_80mm_custom(
                     no_trx_num,
                     metode,
