@@ -1,6 +1,6 @@
 {
-    "version": "v1.9.3",
+    "version": "v1.9.4",
     "download_url": "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/app_scan.py",
-    "sha256": "15d51deca4cb3002fff9197dafac038bb248b5900c2837b9a8d7216c8cfeda1f",
-    "changelog": "Takom Kasir v1.9.3 - Tab Admin & Keuangan (kelola user, arus kas, audit), proteksi tab per peran"
+    "sha256": "98c63de0104a5945716b671af9b4a2f12b951134bd77dd5bbc8ccdb34670222c",
+    "changelog": "Takom Kasir v1.9.4 - Dialog login modern di tengah layar (palet aplikasi, toggle PIN, pesan error inline, status koneksi)"
 }

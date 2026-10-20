@@ -256,25 +256,97 @@ class KasirApp:
         return False
 
     def _login_dialog(self) -> bool:
-        """Modal login username+PIN. Return True bila berhasil."""
+        """Modal login modern (palet aplikasi), tampil di tengah layar."""
         hasil: Dict[str, Any] = {"ok": False}
+
+        # Palet warna konsisten dengan tema aplikasi
+        C_BG, C_SURFACE, C_DARK = "#f5f6fa", "#ffffff", "#2c3e50"
+        C_ACCENT, C_ACCENT_DK = "#1abc9c", "#16a085"
+        C_ERROR, C_MUTED = "#e74c3c", "#95a5a6"
+
         dlg = tk.Toplevel(self.root)
-        dlg.title("Login Kasir")
-        dlg.geometry("320x220")
+        dlg.title("Login - Takom Kasir")
+        dlg.configure(bg=C_BG)
+        dlg.resizable(False, False)
         dlg.transient(self.root)
         dlg.grab_set()
-        ttk.Label(dlg, text="Username").pack(pady=(12, 2))
-        ent_user = ttk.Entry(dlg)
-        ent_user.pack()
-        ttk.Label(dlg, text="PIN (6 digit)").pack(pady=(8, 2))
-        ent_pin = ttk.Entry(dlg, show="*")
-        ent_pin.pack()
+
+        # Pusatkan di tengah layar
+        W, H = 400, 470
+        dlg.geometry(f"{W}x{H}")
+        dlg.update_idletasks()
+        dlg.geometry(
+            f"+{(dlg.winfo_screenwidth() - W) // 2}"
+            f"+{(dlg.winfo_screenheight() - H) // 2}"
+        )
+
+        # === HEADER GELAP + GARIS AKSEN ===
+        hdr = tk.Frame(dlg, bg=C_DARK, height=118)
+        hdr.pack(fill="x")
+        hdr.pack_propagate(False)
+        tk.Label(hdr, text="TAKOM", bg=C_DARK, fg=C_ACCENT,
+                 font=("Segoe UI", 11, "bold")).pack(pady=(18, 0))
+        tk.Label(hdr, text="KASIR", bg=C_DARK, fg="white",
+                 font=("Segoe UI", 26, "bold")).pack()
+        tk.Label(hdr, text="Silakan login untuk melanjutkan", bg=C_DARK,
+                 fg="#bdc3c7", font=("Segoe UI", 9)).pack(pady=(4, 14))
+        tk.Frame(dlg, bg=C_ACCENT, height=4).pack(fill="x")
+
+        # === BODY ===
+        body = tk.Frame(dlg, bg=C_BG)
+        body.pack(fill="both", expand=True, padx=36, pady=(26, 0))
+
+        def field_label(text: str) -> None:
+            tk.Label(body, text=text, bg=C_BG, fg=C_DARK,
+                     font=("Segoe UI", 10, "bold"), anchor="w").pack(fill="x")
+
+        def field_entry(parent) -> tk.Entry:
+            e = tk.Entry(
+                parent, font=("Segoe UI", 13), bg=C_SURFACE, fg="#1a1a2e",
+                relief="flat", bd=9, insertbackground="#1a1a2e",
+                highlightthickness=2, highlightcolor=C_ACCENT,
+                highlightbackground="#dfe4e8",
+            )
+            e.pack(fill="x", pady=(4, 0))
+            return e
+
+        field_label("Username")
+        ent_user = field_entry(body)
+        field_label("PIN")
+        pin_wrap = tk.Frame(body, bg=C_BG)
+        pin_wrap.pack(fill="x")
+        ent_pin = tk.Entry(
+            pin_wrap, font=("Segoe UI", 13), bg=C_SURFACE, fg="#1a1a2e",
+            relief="flat", bd=9, insertbackground="#1a1a2e",
+            highlightthickness=2, highlightcolor=C_ACCENT,
+            highlightbackground="#dfe4e8", show="*",
+        )
+        ent_pin.pack(side="left", fill="x", expand=True)
+
+        def toggle_pin():
+            if ent_pin.cget("show"):
+                ent_pin.config(show="")
+                btn_lihat.config(text="Sembunyi")
+            else:
+                ent_pin.config(show="*")
+                btn_lihat.config(text="Lihat")
+
+        btn_lihat = tk.Button(
+            pin_wrap, text="Lihat", font=("Segoe UI", 9),
+            bg="#ecf0f1", fg=C_DARK, activebackground="#dfe4e8",
+            relief="flat", cursor="hand2", padx=8, command=toggle_pin,
+        )
+        btn_lihat.pack(side="left", padx=(6, 0))
+
+        lbl_err = tk.Label(body, text="", bg=C_BG, fg=C_ERROR,
+                           font=("Segoe UI", 9, "italic"), anchor="w", height=2)
+        lbl_err.pack(fill="x", pady=(8, 0))
 
         def coba_login(event=None):
             username = ent_user.get().strip()
             pin = ent_pin.get().strip()
             if not username or not pin:
-                messagebox.showwarning("Login", "Isi username dan PIN.", parent=dlg)
+                lbl_err.config(text="Isi username dan PIN terlebih dahulu.")
                 return
             # Default darurat bila DB belum punya user: owner/123456
             if username == "owner" and self._cek_pin_default(pin):
@@ -292,11 +364,38 @@ class KasirApp:
                 hasil["ok"] = True
                 dlg.destroy()
             else:
-                messagebox.showerror("Login", "Username/PIN salah.", parent=dlg)
+                lbl_err.config(text="Username atau PIN salah.")
+                ent_pin.delete(0, "end")
+                ent_pin.focus_set()
+                dlg.bell()
 
-        ttk.Button(dlg, text="Masuk", command=coba_login).pack(pady=14)
+        # === TOMBOL MASUK (hover hijau toska) ===
+        btn_masuk = tk.Button(
+            body, text="MASUK", font=("Segoe UI", 12, "bold"),
+            bg=C_ACCENT, fg="white", activebackground=C_ACCENT_DK,
+            activeforeground="white", relief="flat", cursor="hand2",
+            command=coba_login,
+        )
+        btn_masuk.pack(fill="x", pady=(4, 10))
+        btn_masuk.bind("<Enter>", lambda e: btn_masuk.config(bg=C_ACCENT_DK))
+        btn_masuk.bind("<Leave>", lambda e: btn_masuk.config(bg=C_ACCENT))
+
+        # Status koneksi + hint
+        siap = bool(getattr(self, "is_supabase_ready", False))
+        tk.Label(
+            body,
+            text="Supabase: terhubung" if siap else "Mode lokal (offline)",
+            bg=C_BG, fg="#27ae60" if siap else "#e67e22",
+            font=("Segoe UI", 8),
+        ).pack()
+        tk.Label(body, text="Lupa PIN? Hubungi owner.", bg=C_BG, fg=C_MUTED,
+                 font=("Segoe UI", 8)).pack(pady=(2, 16))
+
         dlg.bind("<Return>", coba_login)
+        dlg.bind("<Escape>", lambda e: dlg.destroy())
+        dlg.protocol("WM_DELETE_WINDOW", lambda: dlg.destroy())
         ent_user.focus_set()
+        ent_user.select_range(0, "end")
         self.root.wait_window(dlg)
         return bool(hasil["ok"])
 
@@ -330,7 +429,7 @@ class KasirApp:
         try:
             role = getattr(self.current_user, "role", "kasir")
             user = getattr(self.current_user, "username", "?")
-            self.root.title(f"Takom Kasir v1.9.3 [{role}] - {user}")
+            self.root.title(f"Takom Kasir v1.9.4 [{role}] - {user}")
             # Kasir: sembunyikan tombol sensitif (backend tetap diproteksi _wajib)
             if role == "kasir":
                 for btn in (
