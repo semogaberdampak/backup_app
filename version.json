@@ -1,6 +1,6 @@
 {
     "version": "v1.9.5",
     "download_url": "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/app_scan.py",
-    "sha256": "76c4a1e1697871ef6fb59209ebb39489050003a0387a72a22ea3dd355a4a115a",
+    "sha256": "161335af9bd80ab2e9169296f41c4e17f81f1cb2d3ec7810dd2c6d4e2a463b16",
     "changelog": "Takom Kasir v1.9.5 - Kelola role kustom + checklist hak akses (owner), role dinamis dari tabel app_roles; perbaikan RLS app_users/audit_log/arus_kas/kas_setoran yang memblokir simpan user & audit; fallback owner/123456 hanya saat DB belum punya user owner"
 }
