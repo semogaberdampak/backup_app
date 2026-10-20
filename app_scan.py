@@ -51,9 +51,25 @@ except ImportError:
 
 
 try:
-    from auth_rbac import SessionUser, verify_pin, pin_salt
+    from auth_rbac import (
+        ALL_PERMISSIONS,
+        SessionUser,
+        load_roles,
+        pin_salt,
+        sanitize_permissions,
+        valid_role_name,
+        verify_pin,
+    )
 except ImportError:
     SessionUser = None  # type: ignore[assignment]
+    ALL_PERMISSIONS = ()  # type: ignore[assignment]
+    load_roles = None  # type: ignore[assignment]
+
+    def sanitize_permissions(role, perms):  # type: ignore[no-redef]
+        return frozenset(str(p) for p in perms)
+
+    def valid_role_name(name):  # type: ignore[no-redef]
+        return bool(name)
 
     def verify_pin(*a, **k):  # type: ignore[no-redef]
         return False
@@ -95,7 +111,7 @@ def setup_app_logging() -> None:
 class KasirApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root: tk.Tk = root
-        self.root.title("Takom Kasir v1.9.0 - Type Hints & Static Analysis Ready")
+        self.root.title("Takom Kasir v1.9.5 - RBAC Role Dinamis & Hak Akses Checklist")
         self.root.state("zoomed")
         try:
             self.root.iconbitmap("logo.ico")
@@ -124,6 +140,9 @@ class KasirApp:
 
         # --- RBAC session (diisi via dialog login sebelum UI utama) ---
         self.current_user: Optional[Any] = None
+        # Role dinamis (tabel app_roles): kunci role -> set izin + cache deskripsi
+        self.role_perms: Dict[str, Any] = {}
+        self.role_desc_cache: Dict[str, str] = {}
 
         # File & Sheet Target
         self.target_file_path = ""
@@ -348,26 +367,27 @@ class KasirApp:
             if not username or not pin:
                 lbl_err.config(text="Isi username dan PIN terlebih dahulu.")
                 return
-            # Default darurat bila DB belum punya user: owner/123456
-            if username == "owner" and self._cek_pin_default(pin):
-                self.current_user = SessionUser(username="owner", role="owner")
-                hasil["ok"] = True
-                dlg.destroy()
-                return
             row = self._ambil_user(username)
             if row and row.get("aktif", True) and verify_pin(
                 str(row.get("pin_hash", "")), pin
             ):
-                self.current_user = SessionUser(
-                    username=username, role=str(row.get("role", "kasir"))
-                )
+                self._buat_sesi(username, str(row.get("role", "kasir")))
                 hasil["ok"] = True
                 dlg.destroy()
+                return
+            # Default darurat owner/123456 — hanya bila DB belum punya user owner
+            if username == "owner" and row is None and self._cek_pin_default(pin):
+                self._buat_sesi("owner", "owner")
+                hasil["ok"] = True
+                dlg.destroy()
+                return
+            if row and not row.get("aktif", True):
+                lbl_err.config(text="Akun nonaktif. Hubungi owner.")
             else:
                 lbl_err.config(text="Username atau PIN salah.")
-                ent_pin.delete(0, "end")
-                ent_pin.focus_set()
-                dlg.bell()
+            ent_pin.delete(0, "end")
+            ent_pin.focus_set()
+            dlg.bell()
 
         # === TOMBOL MASUK (hover hijau toska) ===
         btn_masuk = tk.Button(
@@ -424,22 +444,34 @@ class KasirApp:
             logging.error(f"Ambil user gagal: {e}", exc_info=True)
             return None
 
+    def _buat_sesi(self, username: str, role: str) -> None:
+        """Bangun sesi login + muat hak akses role dinamis dari app_roles."""
+        try:
+            self.role_perms = load_roles(
+                self.supabase if self.is_supabase_ready else None)
+        except Exception as e:
+            logging.error(f"Muat role saat login gagal: {e}", exc_info=True)
+            self.role_perms = getattr(self, "role_perms", {}) or {}
+        self.current_user = SessionUser(
+            username=username, role=role,
+            permissions=self.role_perms.get(role))
+
     def _terapkan_hak_akses(self) -> None:
-        """Sesuaikan toolbar + judul sesuai peran. Kasir paling ketat."""
+        """Sesuaikan toolbar + judul sesuai izin sesi (role dinamis v1.9.5)."""
         try:
             role = getattr(self.current_user, "role", "kasir")
             user = getattr(self.current_user, "username", "?")
-            self.root.title(f"Takom Kasir v1.9.4 [{role}] - {user}")
-            # Kasir: sembunyikan tombol sensitif (backend tetap diproteksi _wajib)
-            if role == "kasir":
-                for btn in (
-                    getattr(self, "btn_ubah_harga", None),
-                    getattr(self, "btn_tambah_produk", None),
-                    getattr(self, "btn_admin", None),
-                ):
+            self.root.title(f"Takom Kasir v1.9.5 [{role}] - {user}")
+            # Sembunyikan tombol yang izinnya tidak dimiliki (backend tetap _wajib)
+            for aksi, nama_btn in (
+                ("harga", "btn_ubah_harga"),
+                ("master", "btn_tambah_produk"),
+                ("setoran", "btn_admin"),
+            ):
+                btn = getattr(self, nama_btn, None)
+                if btn is not None and not self._boleh(aksi):
                     try:
-                        if btn is not None:
-                            btn.pack_forget()
+                        btn.pack_forget()
                     except Exception:
                         pass
         except Exception:
@@ -850,9 +882,11 @@ class KasirApp:
         nb = ttk.Notebook(parent)
         nb.pack(fill="both", expand=True, padx=10, pady=8)
         self.tab_user = ttk.Frame(nb)
+        self.tab_role = ttk.Frame(nb)
         self.tab_kas = ttk.Frame(nb)
         self.tab_audit = ttk.Frame(nb)
         nb.add(self.tab_user, text="Users")
+        nb.add(self.tab_role, text="Roles")
         nb.add(self.tab_kas, text="Arus Kas")
         nb.add(self.tab_audit, text="Audit")
         self.tree_users = ttk.Treeview(self.tab_user, columns=("u", "r", "a"),
@@ -865,6 +899,28 @@ class KasirApp:
         ttk.Button(fr, text="Tambah", command=self._user_tambah).pack(side="left", padx=4)
         ttk.Button(fr, text="Reset PIN", command=self._user_reset_pin).pack(side="left", padx=4)
         ttk.Button(fr, text="Aktif/Nonaktif", command=self._user_toggle).pack(side="left", padx=4)
+
+        # --- Sub-tab Roles: kelola role kustom + checklist hak akses (owner) ---
+        self.tree_roles = ttk.Treeview(
+            self.tab_role, columns=("r", "d", "n", "t"), show="headings",
+            style="Unified.Treeview")
+        self.tree_roles.heading("r", text="Role")
+        self.tree_roles.heading("d", text="Deskripsi")
+        self.tree_roles.heading("n", text="Izin")
+        self.tree_roles.heading("t", text="Tipe")
+        self.tree_roles.column("r", width=120, anchor="w")
+        self.tree_roles.column("d", width=280, anchor="w")
+        self.tree_roles.column("n", width=70, anchor="center")
+        self.tree_roles.column("t", width=80, anchor="center")
+        self.tree_roles.pack(fill="both", expand=True, padx=6, pady=(6, 2))
+        fr_role = ttk.Frame(self.tab_role)
+        fr_role.pack(pady=4)
+        ttk.Button(fr_role, text="Tambah Role",
+                   command=self._role_tambah).pack(side="left", padx=4)
+        ttk.Button(fr_role, text="Ubah Hak Akses",
+                   command=self._role_edit).pack(side="left", padx=4)
+        ttk.Button(fr_role, text="Hapus Role",
+                   command=self._role_hapus).pack(side="left", padx=4)
         self.tree_kas = ttk.Treeview(self.tab_kas,
                                      columns=("t", "j", "k", "n", "ket"),
                                      show="headings", style="Unified.Treeview")
@@ -887,6 +943,7 @@ class KasirApp:
 
     def refresh_admin_view(self):
         self._muat_users()
+        self._muat_roles()
         self._muat_kas()
         self._muat_audit()
         try:
@@ -959,8 +1016,9 @@ class KasirApp:
         e_p = ttk.Entry(dlg, show="*")
         e_p.pack()
         ttk.Label(dlg, text="Role").pack()
-        cb = ttk.Combobox(dlg, values=["kasir", "admin", "owner"], state="readonly")
-        cb.set("kasir")
+        daftar_role = sorted(self.role_perms) or ["kasir", "admin", "owner"]
+        cb = ttk.Combobox(dlg, values=daftar_role, state="readonly")
+        cb.set("kasir" if "kasir" in daftar_role else daftar_role[0])
         cb.pack()
 
         def simpan():
@@ -976,8 +1034,11 @@ class KasirApp:
                 dlg.destroy()
                 self._muat_users()
             except Exception as e:
-                self._show_safe_error(dlg, "Gagal", "Username mungkin sudah ada.",
-                                      exception=e, context="user_tambah")
+                self._show_safe_error(
+                    dlg, "Gagal",
+                    "Simpan user gagal — username mungkin sudah dipakai atau "
+                    "koneksi database ditolak. Detail di ~/.takom_kasir/app_error.log",
+                    exception=e, context="user_tambah")
         ttk.Button(dlg, text="Simpan", command=simpan).pack(pady=10)
 
     def _user_reset_pin(self):
@@ -1021,6 +1082,184 @@ class KasirApp:
             self._muat_users()
         except Exception as e:
             logging.error(f"Toggle user gagal: {e}", exc_info=True)
+
+    # =========================================================================
+    # KELOLA ROLE + HAK AKSES (owner-only, v1.9.5)
+    # =========================================================================
+    def _muat_roles(self) -> None:
+        """Isi tree_roles + perbarui cache role (tahan gagal/offline)."""
+        try:
+            for i in self.tree_roles.get_children():
+                self.tree_roles.delete(i)
+            if not self.is_supabase_ready or self.supabase is None:
+                return
+            rows = (self.supabase.table("app_roles")
+                    .select("role,deskripsi,permissions,is_system")
+                    .order("role").execute().data or [])
+            self.role_perms = {}
+            self.role_desc_cache = {}
+            total = len(ALL_PERMISSIONS)
+            for r in rows:
+                nama = str(r.get("role") or "")
+                if not nama:
+                    continue
+                perms = sanitize_permissions(nama, r.get("permissions") or [])
+                self.role_perms[nama] = perms
+                self.role_desc_cache[nama] = str(r.get("deskripsi") or "")
+                self.tree_roles.insert("", "end", values=(
+                    nama, self.role_desc_cache[nama][:48],
+                    f"{len(perms)}/{total}",
+                    "Sistem" if r.get("is_system") else "Kustom"))
+        except Exception as e:
+            logging.error(f"Muat roles gagal: {e}", exc_info=True)
+
+    def _role_terpilih(self) -> Optional[str]:
+        sel = self.tree_roles.selection()
+        if not sel:
+            messagebox.showwarning("Role", "Pilih role dulu di daftar.")
+            return None
+        return str(self.tree_roles.item(sel[0])["values"][0])
+
+    def _role_tambah(self) -> None:
+        if not self._wajib("users"):
+            return
+        self._role_dialog("baru")
+
+    def _role_edit(self) -> None:
+        if not self._wajib("users"):
+            return
+        nama = self._role_terpilih()
+        if nama:
+            self._role_dialog("ubah", nama)
+
+    def _role_hapus(self) -> None:
+        if not self._wajib("users"):
+            return
+        nama = self._role_terpilih()
+        if not nama:
+            return
+        try:
+            row = (self.supabase.table("app_roles")
+                   .select("is_system").eq("role", nama).limit(1)
+                   .execute().data or [])
+            if row and row[0].get("is_system"):
+                messagebox.showwarning("Role", "Role sistem tidak bisa dihapus.")
+                return
+            dipakai = (self.supabase.table("app_users")
+                       .select("username").eq("role", nama).limit(1)
+                       .execute().data or [])
+            if dipakai:
+                messagebox.showwarning(
+                    "Role", f"Role '{nama}' masih dipakai user. "
+                            "Pindahkan user ke role lain dulu.")
+                return
+        except Exception as e:
+            self._show_safe_error(None, "Gagal",
+                                  "Tidak bisa memeriksa role (koneksi database).",
+                                  exception=e, context="role_hapus_cek")
+            return
+        if not messagebox.askyesno("Role", f"Hapus role '{nama}'?"):
+            return
+        try:
+            self.supabase.table("app_roles").delete().eq("role", nama).execute()
+            self._audit("role_hapus", "app_roles", nama)
+            self.role_perms.pop(nama, None)
+            self._muat_roles()
+            messagebox.showinfo("Role", f"Role '{nama}' dihapus.")
+        except Exception as e:
+            self._show_safe_error(None, "Gagal", "Hapus role gagal.",
+                                  exception=e, context="role_hapus")
+
+    def _role_dialog(self, mode: str, nama: str = "") -> None:
+        """Dialog checklist hak akses: mode 'baru' atau 'ubah' role tertentu."""
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Tambah Role" if mode == "baru" else f"Hak Akses: {nama}")
+        W, H = 430, 470
+        dlg.geometry(f"{W}x{H}")
+        dlg.update_idletasks()
+        dlg.geometry(
+            f"+{(dlg.winfo_screenwidth() - W) // 2}"
+            f"+{(dlg.winfo_screenheight() - H) // 2}"
+        )
+        dlg.transient(self.root)
+        frm = ttk.Frame(dlg, padding=14)
+        frm.pack(fill="both", expand=True)
+
+        ttk.Label(frm, text="Nama role (huruf kecil/angka/_, 2-20):").pack(anchor="w")
+        e_nama = ttk.Entry(frm)
+        e_nama.insert(0, nama)
+        if mode == "ubah":
+            e_nama.config(state="disabled")
+        e_nama.pack(fill="x", pady=(2, 8))
+
+        ttk.Label(frm, text="Deskripsi:").pack(anchor="w")
+        e_desc = ttk.Entry(frm)
+        e_desc.insert(0, self.role_desc_cache.get(nama, "") if mode == "ubah" else "")
+        e_desc.pack(fill="x", pady=(2, 8))
+
+        ttk.Label(frm, text="Hak Akses:").pack(anchor="w")
+        kunci_owner = nama == "owner"
+        if kunci_owner:
+            ttk.Label(frm,
+                      text="Role owner selalu mendapat semua izin (aman dari lockout).",
+                      foreground="#e67e22", font=("Segoe UI", 8)).pack(anchor="w")
+        kotak = ttk.Frame(frm)
+        kotak.pack(fill="both", expand=True, pady=(2, 4))
+        lama = self.role_perms.get(nama, frozenset()) if mode == "ubah" else frozenset()
+        vars_ = []
+        for i, (kunci, label) in enumerate(ALL_PERMISSIONS):
+            var = tk.IntVar(value=1 if (kunci in lama or kunci_owner) else 0)
+            cb = ttk.Checkbutton(kotak, text=label, variable=var)
+            cb.grid(row=i // 2, column=i % 2, sticky="w", padx=6, pady=3)
+            if kunci_owner:
+                cb.state(["disabled"])
+            vars_.append((kunci, var))
+
+        lbl_err = tk.Label(frm, text="", fg="#e74c3c", font=("Segoe UI", 9),
+                           anchor="w", justify="left")
+        lbl_err.pack(fill="x")
+
+        def simpan() -> None:
+            target = nama if mode == "ubah" else e_nama.get().strip().lower()
+            if not valid_role_name(target):
+                lbl_err.config(text="Nama role: 2-20 karakter, huruf kecil/angka/_ saja.")
+                return
+            if mode == "baru" and target in self.role_perms:
+                lbl_err.config(text=f"Role '{target}' sudah ada.")
+                return
+            if not self.is_supabase_ready or self.supabase is None:
+                lbl_err.config(text="Mode lokal (offline): role tidak bisa disimpan.")
+                return
+            izin = sorted(sanitize_permissions(
+                target, [k for k, v in vars_ if v.get()]))
+            deskripsi = e_desc.get().strip()
+            try:
+                if mode == "baru":
+                    self.supabase.table("app_roles").insert({
+                        "role": target, "deskripsi": deskripsi,
+                        "permissions": izin, "is_system": False}).execute()
+                    self._audit("role_tambah", "app_roles", target)
+                else:
+                    self.supabase.table("app_roles").update(
+                        {"deskripsi": deskripsi, "permissions": izin}
+                    ).eq("role", target).execute()
+                    self._audit("role_ubah", "app_roles", target)
+                self.role_perms[target] = frozenset(izin)
+                self.role_desc_cache[target] = deskripsi
+                self._muat_roles()
+                dlg.destroy()
+            except Exception as e:
+                self._show_safe_error(
+                    dlg, "Gagal",
+                    "Simpan role gagal (nama mungkin sudah dipakai).",
+                    exception=e, context="role_simpan")
+
+        ttk.Button(frm, text="Simpan", command=simpan).pack(pady=(6, 2))
+        ttk.Button(frm, text="Batal", command=dlg.destroy).pack()
+        dlg.bind("<Escape>", lambda e: dlg.destroy())
+        dlg.protocol("WM_DELETE_WINDOW", lambda: dlg.destroy())
+        e_nama.focus_set()
+        self.root.wait_window(dlg)
 
     def _kas_tambah(self, jenis: str):
         if not self._wajib("setoran"):
