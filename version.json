@@ -1,5 +1,6 @@
 {
-    "version": "v1.8.0",
+    "version": "v1.9.1",
     "download_url": "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/app_scan.py",
-    "changelog": "Takom Kasir v1.8.0 - Tampilan UI baru, Nota Editor Adjustable"
+    "sha256": "0196c48010c37bcf41161ef71378da78aaa1b8ab13b4f7d706779b35c2892226",
+    "changelog": "Takom Kasir v1.9.1 - Merge hybrid transaksi Supabase (transaksi+detail), launcher verifikasi sha256, kredensial via .env"
 }

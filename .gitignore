@@ -22,3 +22,16 @@ version.local
 # IDE
 .vscode/
 .idea/
+
+# TESTING
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+
+# PYTEST
+tests/__pycache__/
+
+# BACKUP / ARTIFACTS
+Takomers.zip
+*.zip
