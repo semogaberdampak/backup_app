@@ -35,3 +35,10 @@ tests/__pycache__/
 # BACKUP / ARTIFACTS
 Takomers.zip
 *.zip
+
+# BUILD METADATA (generated, tidak perlu di-commit)
+*.egg-info/
+takom_kasir.egg-info/
+
+# BACKUP LOKAL
+_backup_sebelum_merge/
