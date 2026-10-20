@@ -1,4 +1,4 @@
-# Takom Kasir v1.9.6
+# Takom Kasir v1.9.7
 
 Aplikasi Point of Sale (POS) / Kasir berbasis Python dengan fitur:
 - **UI Modern** - Tkinter dengan tema gelap/terang
@@ -11,7 +11,7 @@ Aplikasi Point of Sale (POS) / Kasir berbasis Python dengan fitur:
 - **NOMAN Input** - Anotasi numerik per transaksi di laporan
 - **Cloud Sync** - Sinkronisasi master produk dari Supabase (PostgreSQL)
 - **Offline-First** - Cache lokal Parquet untuk operasi offline
-- **Auto-Update** - Launcher cek update dari GitHub otomatis
+- **Auto-Update** - Launcher cek update aplikasi **& dependensi (requirements.txt)** dari GitHub otomatis, lengkap dengan verifikasi checksum
 - **Ingat Username** - Checkbox di dialog login, username terakhir tersimpan otomatis
 - **Cross-Platform** - Satu codebase untuk Windows 10+ maupun Linux
 
@@ -162,6 +162,10 @@ Jika versi berbeda → download `app_scan.py` baru → simpan `version.local` �
 ---
 
 ## 📋 Changelog
+
+### v1.9.7 (2026-10-20)
+- ✨ Launcher men-sinkronkan `requirements.txt` dari repo: checksum diverifikasi (`requirements_sha256` di `version.json`), menawarkan `pip install -r requirements.txt` otomatis saat dependensi berubah — install tanpa perlu zip ulang
+- 🧪 Unit test launcher (sinkron requirements) ditambahkan
 
 ### v1.9.6 (2026-10-20)
 - ✨ Checkbox **"Ingat username"** di samping field username pada dialog login (preferensi tersimpan di `~/.takom_kasir/login_prefs.json`)

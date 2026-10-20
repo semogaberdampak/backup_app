@@ -1,6 +1,7 @@
 {
-    "version": "v1.9.6",
+    "version": "v1.9.7",
     "download_url": "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/app_scan.py",
-    "sha256": "02fed00801c153780d769d7938b7cd5f9ce983220861923a8cc6ccb7f2b00e0a",
-    "changelog": "Takom Kasir v1.9.6 - Checkbox 'Ingat username' di dialog login; dukungan cross-platform Linux/Windows (maximize window fallback + driver psycopg3 untuk sinkronisasi cloud)"
+    "sha256": "b6f24bd999554ba68d69ef3535b7eb22abb8bf161e7e6c4796c20aef0ae6e312",
+    "requirements_sha256": "34baa6fddde44ad076c014bd885c238a5c6c9d34c6a28449852f5ee4d392b9dc",
+    "changelog": "Takom Kasir v1.9.7 - Launcher sinkron requirements.txt dari repo (verifikasi checksum + tawar install pip otomatis saat dependensi berubah); v1.9.6: checkbox ingat username + dukungan cross-platform Linux/Windows"
 }

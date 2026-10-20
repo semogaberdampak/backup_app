@@ -12,6 +12,8 @@ from typing import Optional
 VERSION_URL: str = "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/version.json"
 LOCAL_VERSION_FILE: str = "version.local"
 MAIN_APP_FILE: str = "app_scan.py"
+REQS_FILE: str = "requirements.txt"
+REQS_URL: str = "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/requirements.txt"
 
 
 def sha256_file(path: str) -> str:
@@ -34,6 +36,63 @@ def save_local_version(ver: str) -> None:
         f.write(ver)
 
 
+def sync_requirements(expected_sha256: str) -> None:
+    """Sinkronkan requirements.txt dari repo & tawarkan install bila isinya berbeda.
+
+    Aman offline: gagal download dilewati tanpa menghentikan aplikasi.
+    Checksum selalu diverifikasi sebelum file lokal ditimpa.
+    """
+    tmp_path = REQS_FILE + ".new"
+    try:
+        print(f"Mengecek dependensi dari {REQS_URL} ...")
+        urllib.request.urlretrieve(REQS_URL, tmp_path)
+
+        got = sha256_file(tmp_path)
+        if got.lower() != expected_sha256.lower():
+            os.remove(tmp_path)
+            print(f"Checksum requirements tidak cocok (file rusak/disusupi): got {got}")
+            return
+
+        lokal = b""
+        if os.path.exists(REQS_FILE):
+            with open(REQS_FILE, "rb") as f:
+                lokal = f.read()
+        with open(tmp_path, "rb") as f:
+            baru = f.read()
+
+        if lokal == baru:
+            os.remove(tmp_path)
+            print("requirements.txt sudah terbaru, tidak ada instalasi.")
+            return
+
+        tanya: bool = messagebox.askyesno(
+            "Dependensi Berubah",
+            "requirements.txt di repo berubah.\n"
+            "Install dependensi baru via pip sekarang?\n\n"
+            "Pilih 'Tidak' jika ingin install manual kapan saja:\n"
+            "pip install -r requirements.txt",
+        )
+        if not tanya:
+            os.remove(tmp_path)
+            print("Update dependensi dilewati. Install manual: pip install -r requirements.txt")
+            return
+
+        os.replace(tmp_path, REQS_FILE)
+        print("Menjalankan: pip install -r requirements.txt")
+        hasil = subprocess.run([sys.executable, "-m", "pip", "install", "-r", REQS_FILE])
+        if hasil.returncode == 0:
+            print("✅ Dependensi berhasil diupdate.")
+        else:
+            print("⚠️ pip mengembalikan error. Jalankan manual: pip install -r requirements.txt")
+    except Exception as e:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+        print(f"Gagal sinkron requirements (lanjut tanpa update dependensi): {e}")
+
+
 def check_and_update() -> None:
     root = tk.Tk()
     root.withdraw()  # Sembunyikan window utama launcher sementara mengecek
@@ -50,6 +109,9 @@ def check_and_update() -> None:
         download_url: Optional[str] = data.get("download_url")
         changelog: str = data.get("changelog", "Pembaruan sistem.")
         expected_sha256: Optional[str] = data.get("sha256")
+        # Checksum requirements.txt di repo — untuk sinkronisasi dependensi
+        req_sha256: Optional[str] = data.get("requirements_sha256")
+        boleh_sync: bool = False
 
         # Validate required fields
         if remote_ver is None or download_url is None:
@@ -79,12 +141,23 @@ def check_and_update() -> None:
                         return
                 os.replace(tmp_path, MAIN_APP_FILE)
                 save_local_version(remote_ver)
+                boleh_sync = True
                 messagebox.showinfo(
                     "Sukses", "Patch berhasil didownload & diverifikasi! Aplikasi akan dijalankan."
 
                 )
         else:
             print("Aplikasi sudah menggunakan versi paling mutakhir.")
+            boleh_sync = True
+
+        # Sinkronisasi requirements.txt bila checksum-nya berbeda dari repo
+        # (hanya saat patch diterima / versi sudah sama — tidak saat user menolak update)
+        if boleh_sync and req_sha256:
+            lokal_req_sha: str = sha256_file(REQS_FILE) if os.path.exists(REQS_FILE) else ""
+            if lokal_req_sha.lower() != req_sha256.lower():
+                sync_requirements(req_sha256)
+            else:
+                print("requirements.txt sudah sesuai versi repo.")
 
     except Exception as e:
         print(f"Gagal memeriksa update dari GitHub (Mode Offline): {e}")
