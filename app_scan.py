@@ -148,7 +148,7 @@ def save_login_prefs(remember: bool, username: str) -> None:
 class KasirApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root: tk.Tk = root
-        self.root.title("Takom Kasir v1.9.5 - RBAC Role Dinamis & Hak Akses Checklist")
+        self.root.title("Takom Kasir v1.9.6 - Ingat Username & Dukungan Linux/Windows")
         # Maximize window secara cross-platform:
         # - Windows: state("zoomed")
         # - Linux (X11/GNOME): attributes("-zoomed")
@@ -533,7 +533,7 @@ class KasirApp:
         try:
             role = getattr(self.current_user, "role", "kasir")
             user = getattr(self.current_user, "username", "?")
-            self.root.title(f"Takom Kasir v1.9.5 [{role}] - {user}")
+            self.root.title(f"Takom Kasir v1.9.6 [{role}] - {user}")
             # Sembunyikan tombol yang izinnya tidak dimiliki (backend tetap _wajib)
             for aksi, nama_btn in (
                 ("harga", "btn_ubah_harga"),

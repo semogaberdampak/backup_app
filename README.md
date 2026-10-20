@@ -1,4 +1,4 @@
-# Takom Kasir v1.8.0
+# Takom Kasir v1.9.6
 
 Aplikasi Point of Sale (POS) / Kasir berbasis Python dengan fitur:
 - **UI Modern** - Tkinter dengan tema gelap/terang
@@ -12,6 +12,8 @@ Aplikasi Point of Sale (POS) / Kasir berbasis Python dengan fitur:
 - **Cloud Sync** - Sinkronisasi master produk dari Supabase (PostgreSQL)
 - **Offline-First** - Cache lokal Parquet untuk operasi offline
 - **Auto-Update** - Launcher cek update dari GitHub otomatis
+- **Ingat Username** - Checkbox di dialog login, username terakhir tersimpan otomatis
+- **Cross-Platform** - Satu codebase untuk Windows 10+ maupun Linux
 
 ---
 
@@ -156,6 +158,30 @@ CREATE INDEX idx_master_produk_judul ON master_produk(judul);
 ```
 
 Jika versi berbeda → download `app_scan.py` baru → simpan `version.local` → jalankan.
+
+---
+
+## 📋 Changelog
+
+### v1.9.6 (2026-10-20)
+- ✨ Checkbox **"Ingat username"** di samping field username pada dialog login (preferensi tersimpan di `~/.takom_kasir/login_prefs.json`)
+- 🐛 Fix maximize window (`state("zoomed")`) hanya jalan di Windows — kini fallback ke `attributes("-zoomed")` (Linux) dan geometry default
+- 🐛 Tambah driver `psycopg` v3 — sinkronisasi cloud PostgreSQL kini jalan di Linux (SQLAlchemy 2.1 tidak lagi memakai psycopg2 saja)
+- 📦 Dependensi (`requirements.txt`, `pyproject.toml`) & versi aplikasi diselaraskan ke 1.9.6
+
+### v1.9.5
+- Kelola role kustom + checklist hak akses (owner), role dinamis dari tabel `app_roles`
+- Perbaikan RLS `app_users`/`audit_log`/`arus_kas`/`kas_setoran` yang memblokir simpan user & audit
+- Fallback owner/123456 hanya saat DB belum punya user owner
+
+### v1.9.4
+- Dialog login modern di tengah layar, palet aplikasi, toggle PIN, pesan error inline, status koneksi
+
+### v1.9.3
+- Tab Admin Keuangan, kelola user, arus kas, audit, proteksi tab per peran
+
+### v1.9.2
+- RBAC login PIN + audit, proteksi harga/master/setoran, integrasi `kas_setoran`, skema transaksi baru
 
 ---
 
