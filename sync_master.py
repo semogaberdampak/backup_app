@@ -147,9 +147,24 @@ class MasterDataSync:
                 return pd.DataFrame(columns=["barcode", "judul", "harga"])
 
             client = create_client(url, key)
-            res = client.table("master_produk").select("barcode, judul, harga").execute()
-            rows = res.data or []
-            df = pd.DataFrame(rows)
+            all_rows = []
+            page_size = 1000
+            offset = 0
+            while True:
+                res = (
+                    client.table("master_produk")
+                    .select("barcode, judul, harga")
+                    .range(offset, offset + page_size - 1)
+                    .execute()
+                )
+                rows = res.data or []
+                if not rows:
+                    break
+                all_rows.extend(rows)
+                if len(rows) < page_size:
+                    break
+                offset += page_size
+            df = pd.DataFrame(all_rows)
             if len(df):
                 df["harga"] = pd.to_numeric(df["harga"], errors="coerce").fillna(0.0)
             return df
