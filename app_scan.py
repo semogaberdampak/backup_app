@@ -20,8 +20,8 @@ load_dotenv()
 # ==========================================================
 # 1. KONFIGURASI SUPABASE
 # ==========================================================
-SUPABASE_URL: Optional[str] = os.getenv("SUPABASE_URL")
-SUPABASE_KEY: Optional[str] = os.getenv("SUPABASE_KEY")
+SUPABASE_URL: Optional[str] = os.getenv("SUPABASE_URL", "https://ibhkaoacvxonfhfxjyzr.supabase.co")
+SUPABASE_KEY: Optional[str] = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaGthb2FjdnhvbmZoZnhqeXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MDU3MDAsImV4cCI6MjEwNDM4MTcwMH0.dt_maWfhaJVTrk9cl5aL_LVp5PjlYtoWKFxPXTTuh6g")
 SUPABASE_TABLE: str = os.getenv("SUPABASE_TABLE", "master_produk")
 
 if not SUPABASE_URL or not SUPABASE_KEY:

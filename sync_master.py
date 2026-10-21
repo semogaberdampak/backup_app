@@ -140,8 +140,8 @@ class MasterDataSync:
         try:
             from supabase import create_client  # type: ignore
 
-            url = os.getenv("SUPABASE_URL")
-            key = os.getenv("SUPABASE_KEY")
+            url = os.getenv("SUPABASE_URL", "https://ibhkaoacvxonfhfxjyzr.supabase.co")
+            key = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaGthb2FjdnhvbmZoZnhqeXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MDU3MDAsImV4cCI6MjEwNDM4MTcwMH0.dt_maWfhaJVTrk9cl5aL_LVp5PjlYtoWKFxPXTTuh6g")
             if not url or not key:
                 print("⚠️ SUPABASE_URL/SUPABASE_KEY tidak ada di .env. Mode OFFLINE.")
                 return pd.DataFrame(columns=["barcode", "judul", "harga"])
