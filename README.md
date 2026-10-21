@@ -1,4 +1,4 @@
-# Takom Kasir v1.9.11
+# Takom Kasir v1.9.12
 
 Aplikasi Point of Sale (POS) / Kasir berbasis Python dengan fitur:
 - **UI Modern** - Tkinter dengan tema gelap/terang

@@ -39,7 +39,7 @@ def get_local_version() -> str:
                 return str(ver).strip()
         except Exception:
             pass
-    return "v1.9.11"
+    return "v1.9.12"
 
 
 def save_local_version(ver: str) -> None:
