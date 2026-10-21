@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "takom-kasir"
-version = "1.9.10"
+version = "1.9.11"
 description = "Aplikasi Kasir (POS) dengan sinkronisasi cloud Supabase"
 readme = "README.md"
 authors = [{name = "Takom Team"}]

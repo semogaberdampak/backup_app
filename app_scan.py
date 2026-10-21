@@ -326,9 +326,9 @@ class KasirApp:
         hasil: Dict[str, Any] = {"ok": False}
 
         # Palet warna konsisten dengan tema aplikasi
-        C_BG, C_SURFACE, C_DARK = "#f5f6fa", "#ffffff", "#2c3e50"
-        C_ACCENT, C_ACCENT_DK = "#1abc9c", "#16a085"
-        C_ERROR, C_MUTED = "#e74c3c", "#95a5a6"
+        C_BG, C_SURFACE, C_DARK = "#d4d0c8", "#ffffff", "#003399"
+        C_ACCENT, C_ACCENT_DK = "#316ac5", "#2055b5"
+        C_ERROR, C_MUTED = "#cc0000", "#555555"
 
         dlg = tk.Toplevel(self.root)
         dlg.title("Login - Takom Kasir")
@@ -651,27 +651,37 @@ class KasirApp:
     # =========================================================================
     def setup_custom_styles(self):
         style = ttk.Style()
-        style.theme_use("clam")
+        # Prefer Windows XP native theme bila tersedia, fallback ke clam
+        try:
+            style.theme_use("xpnative")
+        except tk.TclError:
+            style.theme_use("clam")
 
-        # === BACKGROUND GLOBAL ===
-        style.configure(".", background="#f5f6fa", fieldbackground="#ffffff")
-        style.configure("TFrame", background="#f5f6fa")
-        style.configure("TLabelFrame", background="#f5f6fa", foreground="#2c3e50")
-        style.configure("TLabelFrame.Label", font=("Segoe UI", 10, "bold"), foreground="#2c3e50")
-        style.configure("TLabel", background="#f5f6fa", foreground="#2c3e50")
+        # === BACKGROUND GLOBAL (nuansa XP, sedikit lebih gelap) ===
+        XP_BG = "#d4d0c8"        # abu-abu XP klasik (lebih gelap dari #f5f6fa)
+        XP_SURFACE = "#ffffff"
+        XP_DARK = "#003399"      # biru XP
+        XP_ACCENT = "#316ac5"    # biru tombol XP
+        style.configure(".", background=XP_BG, fieldbackground=XP_SURFACE)
+        style.configure("TFrame", background=XP_BG)
+        style.configure("TLabelFrame", background=XP_BG, foreground=XP_DARK)
+        style.configure("TLabelFrame.Label", font=("Segoe UI", 10, "bold"), foreground=XP_DARK)
+        style.configure("TLabel", background=XP_BG, foreground=XP_DARK)
 
-        # === TOMBOL TTK - TEKS HITAM JELAS (FIX BUG TIDAK TERBACA) ===
+        # === TOMBOL TTK - TEKS HITAM JELAS, AUTO CENTER ===
         style.configure(
             "TButton",
             font=("Segoe UI", 10, "bold"),
-            foreground="#1a1a2e",
-            background="#ffffff",
+            foreground="#000000",
+            background=XP_SURFACE,
+            anchor="center",
+            justify="center",
             padding=8,
         )
         style.map(
             "TButton",
-            background=[("active", "#e0e0e0"), ("pressed", "#d0d0d0")],
-            foreground=[("active", "#1a1a2e"), ("pressed", "#1a1a2e")],
+            background=[("active", "#e8e8e8"), ("pressed", "#d0d0d0")],
+            foreground=[("active", "#000000"), ("pressed", "#000000")],
         )
 
         # === TABEL UNIFIED ===
