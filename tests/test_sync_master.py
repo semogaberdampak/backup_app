@@ -34,7 +34,9 @@ class TestMasterDataSync:
 
     def test_load_data_offline_no_cache(self):
         """Test load_data ketika offline dan tidak ada cache"""
-        with patch("sync_master.DATABASE_URL", None):
+        with patch("sync_master.DATABASE_URL", None), patch(
+            "sync_master.os.getenv", return_value=None
+        ):
             sync = MasterDataSync()
             df, status = sync.load_data()
 
@@ -55,7 +57,7 @@ class TestMasterDataSync:
         )
         dummy_data.to_parquet(CACHE_FILE, index=False)
 
-        with patch("sync_master.DATABASE_URL", None):
+        with patch("sync_master.DATABASE_URL", None), patch("sync_master.os.getenv", return_value=None):
             sync = MasterDataSync()
             df, status = sync.load_data()
 
@@ -73,7 +75,7 @@ class TestMasterDataSync:
         )
         mock_read_sql.return_value = mock_df
 
-        with patch("sync_master.DATABASE_URL", "postgresql://test:test@localhost/test"):
+        with patch("sync_master.DATABASE_URL", "postgresql://test:test@localhost/test"), patch("sync_master.os.getenv", return_value=None):
             sync = MasterDataSync()
             df, status = sync.load_data()
 
@@ -94,7 +96,7 @@ class TestMasterDataSync:
         # Mock exception
         mock_read_sql.side_effect = Exception("Connection failed")
 
-        with patch("sync_master.DATABASE_URL", "postgresql://test:test@localhost/test"):
+        with patch("sync_master.DATABASE_URL", "postgresql://test:test@localhost/test"), patch("sync_master.os.getenv", return_value=None):
             sync = MasterDataSync()
             df, status = sync.load_data()
 
@@ -115,3 +117,4 @@ class TestDatabaseURLConfig:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
