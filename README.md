@@ -1,4 +1,4 @@
-# Takom Kasir v1.9.7
+# Takom Kasir v1.9.11
 
 Aplikasi Point of Sale (POS) / Kasir berbasis Python dengan fitur:
 - **UI Modern** - Tkinter dengan tema gelap/terang
@@ -162,6 +162,22 @@ Jika versi berbeda → download `app_scan.py` baru → simpan `version.local` �
 ---
 
 ## 📋 Changelog
+
+### v1.9.11 (2026-10-21)
+- 🎨 UI nuansa Windows XP: background abu-abu `#d4d0c8` (lebih gelap, tidak menyilaukan), tema ttk `xpnative` (fallback `clam`)
+- 🎨 Tombol ttk: teks hitam jelas, auto-center (`anchor="center"`, `justify="center"`)
+- 🎨 Palet login: biru XP (`#003399` / `#316ac5`)
+
+### v1.9.10 (2026-10-21)
+- 🐛 Sync master produk via REST kini pagination (ambil semua data, bukan hanya 1000 row)
+- 🔢 Version bump v1.9.10
+
+### v1.9.9 (2026-10-21)
+- 🔐 Default Supabase URL/anon key di kode (`.env` opsional), `.env` tidak wajib
+- 🛡️ Hardening: RLS + RPC `verify_pin` (file `supabase_rls.sql`)
+
+### v1.9.8 (2026-10-21)
+- 🌐 Sync master produk via REST Supabase bila pooler PostgreSQL tidak terjangkau (offline-first tetap jalan)
 
 ### v1.9.7 (2026-10-20)
 - ✨ Launcher men-sinkronkan `requirements.txt` dari repo: checksum diverifikasi (`requirements_sha256` di `version.json`), menawarkan `pip install -r requirements.txt` otomatis saat dependensi berubah — install tanpa perlu zip ulang
