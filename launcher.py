@@ -28,7 +28,18 @@ def get_local_version() -> str:
     if os.path.exists(LOCAL_VERSION_FILE):
         with open(LOCAL_VERSION_FILE, "r") as f:
             return f.read().strip()
-    return "v0.0.0"
+    # Fallback: baca dari version.json (dikirim bersama zip) agar mesin baru tidak tampil "v0"
+    if os.path.exists("version.json"):
+        try:
+            import json
+            with open("version.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+            ver = data.get("version")
+            if ver:
+                return str(ver).strip()
+        except Exception:
+            pass
+    return "v1.9.11"
 
 
 def save_local_version(ver: str) -> None:
