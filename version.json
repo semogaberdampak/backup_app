@@ -1,7 +1,7 @@
 {
-    "version": "v1.9.7",
+    "version": "v1.9.9",
     "download_url": "https://raw.githubusercontent.com/semogaberdampak/backup_app/main/app_scan.py",
     "sha256": "b6f24bd999554ba68d69ef3535b7eb22abb8bf161e7e6c4796c20aef0ae6e312",
     "requirements_sha256": "34baa6fddde44ad076c014bd885c238a5c6c9d34c6a28449852f5ee4d392b9dc",
-    "changelog": "Takom Kasir v1.9.7 - Launcher sinkron requirements.txt dari repo (verifikasi checksum + tawar install pip otomatis saat dependensi berubah); v1.9.6: checkbox ingat username + dukungan cross-platform Linux/Windows"
+    "changelog": "Takom Kasir v1.9.9 - Supabase REST fallback (sync master produk), default publik URL/anon key (.env opsional), RLS + RPC verify_pin. v1.9.8: REST fallback untuk pooler PG yang tidak terjangkau."
 }
